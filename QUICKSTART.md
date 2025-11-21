@@ -1,193 +1,174 @@
-# Quick Start Guide
-
-Get up and running with the Raft-based Distributed Key-Value Store in minutes.
+# Raft KV Store - Quick Start Guide
 
 ## Prerequisites
 
-- Go 1.21+
-- Docker (for containerization)
-- kubectl (for Kubernetes)
-- kind or k3d (for local Kubernetes cluster)
+- Docker and Docker Compose installed
+- Ports available: 8081-8083 (API), 919x (Raft RPC), 9090 (Prometheus), 3000 (Grafana)
 
-## Option 1: Local Single Node (MVP v0)
-
-### Step 1: Run the Node
+## Start the Cluster
 
 ```bash
-# Clone and navigate to project
-cd /Users/hugovillarreal/Documents/Conflux
+# Clone and navigate to the project
+cd Conflux
 
-# Run single node
-go run cmd/raftnode/main.go --node-id=node-0 --port=8080
-```
-
-### Step 2: Test the API
-
-In another terminal:
-
-```bash
-# Put a value
-curl -X PUT http://localhost:8080/kv \
-  -H "Content-Type: application/json" \
-  -d '{"key": "hello", "value": "world"}'
-
-# Get the value
-curl http://localhost:8080/kv/hello
-
-# Check health
-curl http://localhost:8080/healthz
-
-# View metrics
-curl http://localhost:8080/metrics
-```
-
-## Option 2: Kubernetes Deployment
-
-### Step 1: Create Local Cluster
-
-```bash
-# Using kind
-kind create cluster --name conflux
-
-# Or using k3d
-k3d cluster create conflux
-```
-
-### Step 2: Build and Load Image
-
-```bash
-# Build the image
-docker build -t hugo/raft-node:latest -f Dockerfile .
-
-# Load into kind
-kind load docker-image hugo/raft-node:latest --name conflux
-
-# Or push to a registry (if using k3d or remote cluster)
-# docker push hugo/raft-node:latest
-```
-
-### Step 3: Install CRD
-
-```bash
-kubectl apply -f deploy/crd/raftcluster.yaml
-```
-
-### Step 4: Install Operator
-
-```bash
-# Install RBAC
-kubectl apply -f deploy/operator/rbac.yaml
-
-# Build operator image (if needed)
-cd operator
-# ... build operator image ...
-
-# Install operator
-kubectl apply -f deploy/operator/deployment.yaml
-```
-
-### Step 5: Create RaftCluster
-
-```bash
-# Create a 3-node cluster
-kubectl apply -f deploy/samples/raftcluster.yaml
+# Start all services (3 Raft nodes + Prometheus + Grafana)
+docker compose up -d
 
 # Check status
-kubectl get raftclusters
-kubectl get pods -l app=raft-node
+docker compose ps
 
 # View logs
-kubectl logs -l app=raft-node -f
+docker logs raft-node-1 --tail 50
 ```
 
-### Step 6: Access the Cluster
+## Access Points
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Node 1 API | http://localhost:8081 | - |
+| Node 2 API | http://localhost:8082 | - |
+| Node 3 API | http://localhost:8083 | - |
+| Prometheus | http://localhost:9090 | - |
+| Grafana | http://localhost:3000 | admin/admin |
+
+## Test the KV Store
 
 ```bash
-# Port forward to a pod
-kubectl port-forward <pod-name> 8080:8080
-
-# Or create a service (already created by operator)
-kubectl port-forward svc/example-cluster 8080:8080
-
-# Test the API
-curl -X PUT http://localhost:8080/kv \
+# Write a key
+curl -X PUT http://localhost:8081/kv/mykey \
   -H "Content-Type: application/json" \
-  -d '{"key": "test", "value": "value"}'
+  -d '{"value":"hello-world"}'
+
+# Read from same node
+curl http://localhost:8081/kv/mykey
+
+# Read from different node (tests replication)
+curl http://localhost:8082/kv/mykey
+
+# Delete a key
+curl -X DELETE http://localhost:8081/kv/mykey
 ```
 
-## Option 3: Observability Stack
+## Monitor the Cluster
 
-### Install Prometheus
+### Prometheus Queries
 
-```bash
-kubectl apply -f deploy/observability/prometheus.yaml
+Open http://localhost:9090 and try these queries:
 
-# Access Prometheus
-kubectl port-forward svc/prometheus 9090:9090
-# Open http://localhost:9090
+```promql
+# Find the leader
+raft_is_leader == 1
+
+# Current term across all nodes
+raft_term
+
+# Request rate
+rate(kv_requests_total[5m])
+
+# 95th percentile latency
+histogram_quantile(0.95, rate(kv_request_duration_seconds_bucket[5m]))
 ```
 
-### Install Grafana
+### Grafana Dashboard
+
+1. Open http://localhost:3000
+2. Login with `admin/admin`
+3. Import the dashboard from `deploy/grafana/dashboards/raft-overview.json`
+4. Select Prometheus as datasource
+
+## Test Persistence
 
 ```bash
-kubectl apply -f deploy/observability/grafana.yaml
+# Write data
+curl -X PUT http://localhost:8081/kv/persistent \
+  -H "Content-Type: application/json" \
+  -d '{"value":"survives-restart"}'
 
-# Access Grafana
-kubectl port-forward svc/grafana 3000:3000
-# Open http://localhost:3000
-# Login: admin/admin
+# Restart a node
+docker compose restart raft-node-1
+
+# Data still available
+curl http://localhost:8081/kv/persistent
 ```
 
 ## Troubleshooting
 
-### Node Won't Start
-
+### Check if Raft is enabled
 ```bash
-# Check logs
-kubectl logs <pod-name>
-
-# Check events
-kubectl describe pod <pod-name>
+docker logs raft-node-1 | grep "raft_enabled"
+# Should show: "raft_enabled":true
 ```
 
-### Operator Not Working
-
+### Find the leader
 ```bash
-# Check operator logs
-kubectl logs -l app=raft-operator
-
-# Check CRD
-kubectl get crd raftclusters.infra.hugo.dev
+curl -s http://localhost:8081/metrics | grep raft_is_leader
+curl -s http://localhost:8082/metrics | grep raft_is_leader
+curl -s http://localhost:8083/metrics | grep raft_is_leader
+# One should show: raft_is_leader 1
 ```
 
-### Build Errors
+### View Prometheus targets
+```bash
+# All should be "up"
+curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {instance, health}'
+```
+
+### Port conflicts
+If you see "address already in use" errors:
+```bash
+# Stop the cluster
+docker compose down
+
+# Check what's using the ports
+lsof -i :9092  # or whatever port is conflicting
+
+# Ports are configurable in docker-compose.yml
+```
+
+## Stop the Cluster
 
 ```bash
-# Ensure dependencies are installed
-go mod tidy
+# Stop all services
+docker compose down
 
-# Clean and rebuild
-go clean -cache
-go build ./...
+# Stop and remove volumes (deletes all data)
+docker compose down -v
 ```
+
+## Architecture
+
+```
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│ Raft Node 1 │  │ Raft Node 2 │  │ Raft Node 3 │
+│   :8081     │  │   :8082     │  │   :8083     │
+│   :9191     │  │   :9192     │  │   :9193     │
+└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+       │                │                │
+       └────────────────┼────────────────┘
+                        │ Raft Consensus
+                        │
+                   ┌────▼────┐
+                   │Prometheus│
+                   │  :9090   │
+                   └────┬─────┘
+                        │
+                   ┌────▼────┐
+                   │ Grafana │
+                   │  :3000  │
+                   └─────────┘
+```
+
+## Features
+
+✅ **Distributed Consensus** - Raft algorithm for leader election and log replication  
+✅ **Persistence** - WAL + snapshots for durability  
+✅ **Observability** - Prometheus metrics + Grafana dashboards  
+✅ **High Availability** - Survives node failures (2/3 nodes required)  
+✅ **Containerized** - Easy deployment with Docker Compose  
 
 ## Next Steps
 
-1. Read the [Architecture Documentation](docs/architecture.md)
-2. Review the [Operations Guide](docs/operations.md)
-3. Check the [Roadmap](ROADMAP.md) for upcoming features
-4. Explore the codebase starting with `cmd/raftnode/main.go`
-
-## Development Tips
-
-- Use `make run-local` for quick local testing
-- Check `docs/` for detailed design documents
-- Run tests with `go test ./...`
-- Build with `go build ./cmd/raftnode/...`
-
-## Getting Help
-
-- Review the documentation in `docs/`
-- Check the project structure in `PROJECT_SUMMARY.md`
-- See `ROADMAP.md` for development status
-
+- Create custom Grafana dashboards
+- Set up alerting rules in Prometheus
+- Deploy to Kubernetes (see docs/design-operator.md)
+- Add distributed tracing with Jaeger

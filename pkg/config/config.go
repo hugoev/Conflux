@@ -8,12 +8,12 @@ import (
 
 // Config holds the configuration for a Raft node
 type Config struct {
-	NodeID      string
-	Port        int
-	DataDir     string
-	Peers       []string
-	RaftPort    int
-	EnableRaft  bool
+	NodeID     string
+	Port       int
+	DataDir    string
+	Peers      []string
+	RaftPort   int
+	EnableRaft bool
 }
 
 // LoadConfig loads configuration from environment variables and command-line flags
@@ -75,11 +75,54 @@ func parsePeers(peersEnv string) []string {
 	if peersEnv == "" {
 		return []string{}
 	}
-	// Simple parsing - split by comma
-	// In production, this would handle more complex formats
+	// Split by comma and trim spaces
 	peers := []string{}
-	// For now, treat as single peer or comma-separated list
-	// This is a simplified implementation
+	for _, peer := range splitAndTrim(peersEnv, ",") {
+		if peer != "" {
+			peers = append(peers, peer)
+		}
+	}
 	return peers
 }
 
+func splitAndTrim(s, sep string) []string {
+	parts := []string{}
+	for _, part := range splitString(s, sep) {
+		trimmed := trimSpace(part)
+		if trimmed != "" {
+			parts = append(parts, trimmed)
+		}
+	}
+	return parts
+}
+
+func splitString(s, sep string) []string {
+	if s == "" {
+		return []string{}
+	}
+	result := []string{}
+	current := ""
+	for i := 0; i < len(s); i++ {
+		if i+len(sep) <= len(s) && s[i:i+len(sep)] == sep {
+			result = append(result, current)
+			current = ""
+			i += len(sep) - 1
+		} else {
+			current += string(s[i])
+		}
+	}
+	result = append(result, current)
+	return result
+}
+
+func trimSpace(s string) string {
+	start := 0
+	end := len(s)
+	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
+		start++
+	}
+	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
+		end--
+	}
+	return s[start:end]
+}
