@@ -1,0 +1,133 @@
+{
+  "dashboard": {
+    "title": "Raft Cluster Overview",
+    "uid": "raft-overview",
+    "tags": ["raft", "consensus"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "Leader Status",
+        "targets": [
+          {
+            "expr": "raft_is_leader",
+            "legendFormat": "Node {{instance}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Is Leader", "min": 0, "max": 1},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "Current Term",
+        "targets": [
+          {
+            "expr": "raft_term",
+            "legendFormat": "Term {{instance}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "type": "graph",
+        "title": "Commit Index",
+        "targets": [
+          {
+            "expr": "raft_commit_index",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "type": "graph",
+        "title": "Election Timeouts",
+        "targets": [
+          {
+            "expr": "rate(raft_election_timeouts_total[5m])",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "type": "graph",
+        "title": "KV Request Rate",
+        "targets": [
+          {
+            "expr": "rate(kv_requests_total[5m])",
+            "legendFormat": "{{method}} - {{status}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "type": "graph",
+        "title": "KV Request Latency (95th percentile)",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(kv_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{method}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "type": "graph",
+        "title": "WAL Size",
+        "targets": [
+          {
+            "expr": "wal_size_bytes",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "bytes", "label": "Size"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "type": "graph",
+        "title": "Snapshot Size",
+        "targets": [
+          {
+            "expr": "snapshot_size_bytes",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "bytes", "label": "Size"},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}

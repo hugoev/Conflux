@@ -12,6 +12,8 @@ services:
       - RAFT_PORT=9090
       - API_PORT=8080
       - PEERS=raft-node-1:9090,raft-node-2:9090,raft-node-3:9090
+    volumes:
+      - ./data/node1:/data
     networks:
       - raft-network
     healthcheck:
@@ -31,6 +33,8 @@ services:
       - RAFT_PORT=9090
       - API_PORT=8080
       - PEERS=raft-node-1:9090,raft-node-2:9090,raft-node-3:9090
+    volumes:
+      - ./data/node2:/data
     networks:
       - raft-network
     healthcheck:
@@ -50,6 +54,8 @@ services:
       - RAFT_PORT=9090
       - API_PORT=8080
       - PEERS=raft-node-1:9090,raft-node-2:9090,raft-node-3:9090
+    volumes:
+      - ./data/node3:/data
     networks:
       - raft-network
     healthcheck:
@@ -58,6 +64,40 @@ services:
       timeout: 5s
       retries: 3
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - raft-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - raft-network
+    depends_on:
+      - prometheus
+
 networks:
   raft-network:
     driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
