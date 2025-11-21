@@ -1,12 +1,17 @@
 apiVersion: raft.conflux.io/v1alpha1
 kind: RaftCluster
 metadata:
-  labels:
-    app.kubernetes.io/name: raftcluster
-    app.kubernetes.io/instance: raftcluster-sample
-    app.kubernetes.io/part-of: operator
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: operator
-  name: raftcluster-sample
+  name: raft-sample
+  namespace: default
 spec:
-  # TODO(user): Add fields here
+  replicas: 3
+  image: conflux-raft:latest
+  storageSize: "1Gi"
+  # storageClassName: "standard"  # Optional: specify storage class
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"

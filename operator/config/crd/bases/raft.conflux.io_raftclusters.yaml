@@ -104,10 +104,22 @@ spec:
                       More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                     type: object
                 type: object
+              storageClassName:
+                description: StorageClassName is the storage class name for persistent
+                  volumes
+                type: string
+              storageSize:
+                default: 1Gi
+                description: StorageSize is the size of the persistent volume for
+                  each node
+                type: string
             type: object
           status:
             description: RaftClusterStatus defines the observed state of RaftCluster
             properties:
+              leader:
+                description: Leader is the name of the current leader node
+                type: string
               phase:
                 description: Phase represents the current state of the cluster
                 type: string

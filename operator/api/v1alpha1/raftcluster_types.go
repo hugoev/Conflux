@@ -36,6 +36,14 @@ type RaftClusterSpec struct {
 
 	// Resources defines the resource requirements for each node
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// StorageSize is the size of the persistent volume for each node
+	// +kubebuilder:default="1Gi"
+	StorageSize string `json:"storageSize,omitempty"`
+
+	// StorageClassName is the storage class name for persistent volumes
+	// +optional
+	StorageClassName *string `json:"storageClassName,omitempty"`
 }
 
 // RaftClusterStatus defines the observed state of RaftCluster
@@ -45,6 +53,10 @@ type RaftClusterStatus struct {
 
 	// ReadyReplicas is the number of ready nodes
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
+
+	// Leader is the name of the current leader node
+	// +optional
+	Leader string `json:"leader,omitempty"`
 }
 
 //+kubebuilder:object:root=true
