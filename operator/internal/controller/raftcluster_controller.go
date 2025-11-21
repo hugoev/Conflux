@@ -128,12 +128,25 @@ func (r *RaftClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{Requeue: true}, nil
 		}
 
-		// Update mutable fields only
+		// Update mutable fields only (avoid replacing entire template to prevent reconciliation loop)
 		existingSts.Spec.Replicas = desiredSts.Spec.Replicas
+
+		// Only update container fields we control
+		if len(existingSts.Spec.Template.Spec.Containers) > 0 && len(desiredSts.Spec.Template.Spec.Containers) > 0 {
+			existingContainer := &existingSts.Spec.Template.Spec.Containers[0]
+			desiredContainer := &desiredSts.Spec.Template.Spec.Containers[0]
+
+			existingContainer.Image = desiredContainer.Image
+			existingContainer.Env = desiredContainer.Env
+			existingContainer.LivenessProbe = desiredContainer.LivenessProbe
+			existingContainer.ReadinessProbe = desiredContainer.ReadinessProbe
+		}
+
 		if err := r.Update(ctx, existingSts); err != nil {
 			log.Error(err, "failed to update StatefulSet")
 			return ctrl.Result{}, err
 		}
+		log.Info("Updated StatefulSet", "name", existingSts.Name)
 	}
 
 	// Fetch the current StatefulSet for status update
@@ -205,7 +218,7 @@ func (r *RaftClusterReconciler) buildStatefulSet(cluster *raftv1alpha1.RaftClust
 							{ContainerPort: 8080, Name: "http"},
 							{ContainerPort: 9090, Name: "raft"},
 						},
-						Resources: cluster.Spec.Resources,
+						// Resources:       cluster.Spec.Resources,
 						Env: []corev1.EnvVar{
 							{
 								Name:      "NODE_ID",
@@ -231,7 +244,7 @@ func (r *RaftClusterReconciler) buildStatefulSet(cluster *raftv1alpha1.RaftClust
 						LivenessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/health",
+									Path: "/healthz",
 									Port: intstr.FromInt(8080),
 								},
 							},
@@ -243,7 +256,7 @@ func (r *RaftClusterReconciler) buildStatefulSet(cluster *raftv1alpha1.RaftClust
 						ReadinessProbe: &corev1.Probe{
 							ProbeHandler: corev1.ProbeHandler{
 								HTTPGet: &corev1.HTTPGetAction{
-									Path: "/health",
+									Path: "/healthz",
 									Port: intstr.FromInt(8080),
 								},
 							},

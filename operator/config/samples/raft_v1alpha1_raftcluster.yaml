@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   replicas: 3
-  image: conflux-raft:latest
+  image: hugo/raft-node:latest
   storageSize: "1Gi"
   # storageClassName: "standard"  # Optional: specify storage class
   resources:
