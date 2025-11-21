@@ -6,9 +6,17 @@ import (
 )
 
 // resetElectionTimeout resets the election timeout to a random value
+// Each node must have different random timeouts to avoid split votes
 func (n *Node) resetElectionTimeout() time.Duration {
-	// Random timeout between 150ms and 300ms
-	min := 2000 * time.Millisecond
-	max := 4000 * time.Millisecond
-	return min + time.Duration(rand.Int63n(int64(max-min)))
+	// Raft paper recommends 150-300ms range
+	// Using 150-300ms for elections
+	min := 150 * time.Millisecond
+	max := 300 * time.Millisecond
+
+	// Use time-based seed for better randomization across nodes
+	// Each node will have different startup time, giving different seeds
+	source := rand.NewSource(time.Now().UnixNano())
+	rng := rand.New(source)
+
+	return min + time.Duration(rng.Int63n(int64(max-min)))
 }

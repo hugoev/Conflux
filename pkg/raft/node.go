@@ -96,10 +96,9 @@ func NewNode(nodeID string, peers []string, dataDir string, logger *zap.Logger) 
 	}
 }
 
-// Start begins the Raft node's main loop
+// Start starts the Raft node
 func (n *Node) Start() {
 	n.logger.Info("Starting Raft node", zap.String("nodeID", n.nodeID))
-	n.resetElectionTimeout()
 
 	// Start apply loop
 	n.startApplyLoop()
@@ -164,7 +163,7 @@ func (n *Node) runCandidate() {
 	term := n.currentTerm
 	n.mu.Unlock()
 
-	n.logger.Info("Starting election", zap.Int("term", term))
+	n.logger.Info("Starting election", zap.Int("term", term), zap.Int("peers", len(n.peers)))
 
 	// Vote for self
 	votesReceived := 1
@@ -186,17 +185,36 @@ func (n *Node) runCandidate() {
 				LastLogTerm:  n.getLastLogTerm(),
 			}
 			var reply RequestVoteReply
-			if err := n.sendRequestVote(peer, args, &reply); err != nil {
-				// RPC failed
+
+			// Retry logic for transient failures (e.g., DNS not ready during startup)
+			maxRetries := 3
+			retryDelay := 100 * time.Millisecond
+
+			var err error
+			for attempt := 0; attempt < maxRetries; attempt++ {
+				err = n.sendRequestVote(peer, args, &reply)
+				if err == nil {
+					break // Success
+				}
+
+				// Only retry on DNS/network errors, not on application errors
+				if attempt < maxRetries-1 {
+					time.Sleep(retryDelay)
+					retryDelay *= 2 // Exponential backoff
+				}
+			}
+
+			if err != nil {
+				// RPC failed after retries
 				voteCh <- false
 				return
 			}
 
 			// Process reply
 			n.mu.Lock()
-			defer n.mu.Unlock()
 
 			if n.state != StateCandidate || n.currentTerm != term {
+				n.mu.Unlock()
 				voteCh <- false
 				return
 			}
@@ -204,9 +222,12 @@ func (n *Node) runCandidate() {
 				n.currentTerm = reply.Term
 				n.state = StateFollower
 				n.votedFor = ""
+				n.mu.Unlock()
 				voteCh <- false
 				return
 			}
+			n.mu.Unlock()
+			// Send vote result without holding lock to avoid deadlock
 			voteCh <- reply.VoteGranted
 		}(peer)
 	}
@@ -233,6 +254,7 @@ func (n *Node) runCandidate() {
 			}
 			if vote {
 				votesReceived++
+				n.logger.Info("Received vote", zap.Int("term", term), zap.Int("votes", votesReceived), zap.Int("needed", votesNeeded))
 				if votesReceived >= votesNeeded {
 					n.logger.Info("Won election", zap.Int("term", term), zap.Int("votes", votesReceived))
 					n.state = StateLeader

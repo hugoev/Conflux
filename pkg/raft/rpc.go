@@ -147,11 +147,14 @@ func (n *Node) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) error
 	if (n.votedFor == "" || n.votedFor == args.CandidateID) && n.isLogUpToDate(args.LastLogIndex, args.LastLogTerm) {
 		n.votedFor = args.CandidateID
 		reply.VoteGranted = true
+		n.logger.Info("Granted vote", zap.String("candidate", args.CandidateID), zap.Int("term", args.Term))
 		// Granting vote resets election timer
 		select {
 		case n.electionResetEvent <- struct{}{}:
 		default:
 		}
+	} else {
+		n.logger.Info("Denied vote", zap.String("candidate", args.CandidateID), zap.Int("term", args.Term), zap.String("votedFor", n.votedFor))
 	}
 	return nil
 }

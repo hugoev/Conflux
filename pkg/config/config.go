@@ -18,6 +18,11 @@ type Config struct {
 
 // LoadConfig loads configuration from environment variables and command-line flags
 func LoadConfig() (*Config, error) {
+	return LoadConfigWithArgs(os.Args[1:])
+}
+
+// LoadConfigWithArgs loads configuration with custom arguments (useful for testing)
+func LoadConfigWithArgs(args []string) (*Config, error) {
 	cfg := &Config{
 		DataDir:    "./data",
 		Port:       8080,
@@ -25,12 +30,17 @@ func LoadConfig() (*Config, error) {
 		EnableRaft: false, // Start with single-node mode
 	}
 
-	flag.StringVar(&cfg.NodeID, "node-id", getEnv("NODE_ID", "node-0"), "Unique node identifier")
-	flag.IntVar(&cfg.Port, "port", getEnvInt("PORT", 8080), "HTTP API port")
-	flag.IntVar(&cfg.RaftPort, "raft-port", getEnvInt("RAFT_PORT", 9090), "Raft RPC port")
-	flag.StringVar(&cfg.DataDir, "data-dir", getEnv("DATA_DIR", "./data"), "Data directory for WAL and snapshots")
-	flag.BoolVar(&cfg.EnableRaft, "enable-raft", getEnvBool("ENABLE_RAFT", false), "Enable Raft consensus (multi-node mode)")
-	flag.Parse()
+	// Create a new FlagSet to avoid global flag pollution
+	fs := flag.NewFlagSet("config", flag.ContinueOnError)
+	fs.StringVar(&cfg.NodeID, "node-id", getEnv("NODE_ID", "node-0"), "Unique node identifier")
+	fs.IntVar(&cfg.Port, "port", getEnvInt("PORT", 8080), "HTTP API port")
+	fs.IntVar(&cfg.RaftPort, "raft-port", getEnvInt("RAFT_PORT", 9090), "Raft RPC port")
+	fs.StringVar(&cfg.DataDir, "data-dir", getEnv("DATA_DIR", "./data"), "Data directory for WAL and snapshots")
+	fs.BoolVar(&cfg.EnableRaft, "enable-raft", getEnvBool("ENABLE_RAFT", false), "Enable Raft consensus (multi-node mode)")
+
+	if err := fs.Parse(args); err != nil {
+		return nil, err
+	}
 
 	// Load peers from environment (comma-separated)
 	if peersEnv := os.Getenv("PEERS"); peersEnv != "" {

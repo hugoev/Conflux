@@ -43,14 +43,22 @@ func (s *Server) setupRoutes() {
 
 // ServeHTTP implements http.Handler
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
+			s.logger.Error("Panic in HTTP handler", zap.Any("error", err))
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
+	}()
 	s.router.ServeHTTP(w, r)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	s.logger.Info("Handling health check")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "healthy",
 	})
+	s.logger.Info("Health check completed")
 }
 
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
