@@ -240,7 +240,7 @@ func (n *Node) runCandidate() {
 					n.nextIndex = make(map[string]int)
 					n.matchIndex = make(map[string]int)
 					for _, p := range n.peers {
-						n.nextIndex[p] = n.getLastLogIndex() + 1
+						n.nextIndex[p] = n.getLastLogIndexLocked() + 1
 						n.matchIndex[p] = 0
 					}
 					n.mu.Unlock()
@@ -297,6 +297,12 @@ func (n *Node) Propose(cmd interface{}) error {
 	n.log = append(n.log, entry)
 	n.matchIndex[n.nodeID] = entry.Index
 	n.nextIndex[n.nodeID] = entry.Index + 1
+
+	// Persist to WAL
+	if err := n.persistLogEntry(entry); err != nil {
+		n.logger.Error("Failed to persist log entry", zap.Error(err))
+		return fmt.Errorf("failed to persist log entry: %w", err)
+	}
 
 	n.logger.Info("Proposed command", zap.Int("index", entry.Index), zap.Int("term", entry.Term))
 

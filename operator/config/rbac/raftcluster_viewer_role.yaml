@@ -1,0 +1,27 @@
+# permissions for end users to view raftclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: raftcluster-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: operator
+    app.kubernetes.io/part-of: operator
+    app.kubernetes.io/managed-by: kustomize
+  name: raftcluster-viewer-role
+rules:
+- apiGroups:
+  - raft.conflux.io
+  resources:
+  - raftclusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - raft.conflux.io
+  resources:
+  - raftclusters/status
+  verbs:
+  - get

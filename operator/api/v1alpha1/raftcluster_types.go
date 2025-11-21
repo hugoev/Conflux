@@ -1,73 +1,54 @@
+/*
+Copyright 2025.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
 // RaftClusterSpec defines the desired state of RaftCluster
 type RaftClusterSpec struct {
-	// Replicas is the desired number of nodes in the cluster
-	Replicas int32 `json:"replicas"`
+	// Replicas is the number of Raft nodes
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:default=3
+	Replicas int32 `json:"replicas,omitempty"`
 
-	// Image is the container image to use
-	Image string `json:"image"`
+	// Image is the Docker image to use
+	Image string `json:"image,omitempty"`
 
-	// Resources defines resource limits and requests
-	Resources ResourceRequirements `json:"resources,omitempty"`
-
-	// Storage defines storage configuration
-	Storage StorageSpec `json:"storage,omitempty"`
-
-	// Service defines the service configuration
-	Service ServiceSpec `json:"service,omitempty"`
-}
-
-// ResourceRequirements defines resource limits and requests
-type ResourceRequirements struct {
-	CPU    string `json:"cpu,omitempty"`
-	Memory string `json:"memory,omitempty"`
-}
-
-// StorageSpec defines storage configuration
-type StorageSpec struct {
-	Size string `json:"size,omitempty"`
-}
-
-// ServiceSpec defines service configuration
-type ServiceSpec struct {
-	Type string `json:"type,omitempty"`
-	Port int32  `json:"port,omitempty"`
+	// Resources defines the resource requirements for each node
+	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // RaftClusterStatus defines the observed state of RaftCluster
 type RaftClusterStatus struct {
-	// Phase represents the current phase of the cluster
+	// Phase represents the current state of the cluster
 	Phase string `json:"phase,omitempty"`
 
-	// ReadyReplicas is the number of ready replicas
+	// ReadyReplicas is the number of ready nodes
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
-
-	// Leader is the node ID of the current leader
-	Leader string `json:"leader,omitempty"`
-
-	// Conditions represent the latest available observations
-	Conditions []Condition `json:"conditions,omitempty"`
-}
-
-// Condition represents a condition
-type Condition struct {
-	Type   string `json:"type"`
-	Status string `json:"status"`
-	Reason string `json:"reason,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
-//+kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas"
-//+kubebuilder:printcolumn:name="Ready",type="integer",JSONPath=".status.readyReplicas"
-//+kubebuilder:printcolumn:name="Leader",type="string",JSONPath=".status.leader"
-//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // RaftCluster is the Schema for the raftclusters API
 type RaftCluster struct {

@@ -1,6 +1,10 @@
 package raft
 
-import "go.uber.org/zap"
+import (
+	"time"
+
+	"go.uber.org/zap"
+)
 
 // startApplyLoop runs a goroutine that applies committed entries to the state machine
 func (n *Node) startApplyLoop() {
@@ -45,7 +49,7 @@ func (n *Node) startApplyLoop() {
 				select {
 				case <-n.stopCh:
 					return
-				default:
+				case <-time.After(10 * time.Millisecond):
 				}
 			}
 		}

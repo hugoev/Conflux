@@ -68,8 +68,21 @@ func main() {
 				if msg.CommandValid {
 					if cmd, ok := msg.Command.(*kv.Command); ok {
 						store.Apply(cmd)
+					} else if cmdMap, ok := msg.Command.(map[string]interface{}); ok {
+						// Handle map conversion (from JSON unmarshaling)
+						cmd := &kv.Command{}
+						if typeStr, ok := cmdMap["type"].(string); ok {
+							cmd.Type = kv.CommandType(typeStr)
+						}
+						if key, ok := cmdMap["key"].(string); ok {
+							cmd.Key = key
+						}
+						if value, ok := cmdMap["value"].(string); ok {
+							cmd.Value = value
+						}
+						store.Apply(cmd)
 					} else {
-						logger.Error("Invalid command type received from Raft")
+						logger.Error("Invalid command type received from Raft", zap.Any("command", msg.Command))
 					}
 				}
 			}

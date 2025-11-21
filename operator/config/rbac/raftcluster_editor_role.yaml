@@ -1,0 +1,31 @@
+# permissions for end users to edit raftclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: raftcluster-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: operator
+    app.kubernetes.io/part-of: operator
+    app.kubernetes.io/managed-by: kustomize
+  name: raftcluster-editor-role
+rules:
+- apiGroups:
+  - raft.conflux.io
+  resources:
+  - raftclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - raft.conflux.io
+  resources:
+  - raftclusters/status
+  verbs:
+  - get

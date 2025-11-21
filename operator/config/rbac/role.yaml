@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - raft.conflux.io
+  resources:
+  - raftclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - raft.conflux.io
+  resources:
+  - raftclusters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - raft.conflux.io
+  resources:
+  - raftclusters/status
+  verbs:
+  - get
+  - patch
+  - update

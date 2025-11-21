@@ -37,6 +37,7 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("/metrics", s.handleMetrics).Methods("GET")
 	s.router.HandleFunc("/kv/{key}", s.handleGet).Methods("GET")
 	s.router.HandleFunc("/kv", s.handlePut).Methods("PUT")
+	s.router.HandleFunc("/kv/{key}", s.handlePut).Methods("PUT")
 	s.router.HandleFunc("/kv/{key}", s.handleDelete).Methods("DELETE")
 }
 
@@ -95,6 +96,17 @@ func (s *Server) handlePut(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		metrics.KVRequestsTotal.WithLabelValues("PUT", "400").Inc()
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Check if key is in URL
+	vars := mux.Vars(r)
+	if key, ok := vars["key"]; ok {
+		req.Key = key
+	}
+
+	if req.Key == "" {
+		http.Error(w, "key is required", http.StatusBadRequest)
 		return
 	}
 
