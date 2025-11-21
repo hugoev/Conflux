@@ -1,0 +1,414 @@
+package raft
+
+import (
+	"fmt"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/hugovillarreal/conflux/pkg/snapshot"
+	"github.com/hugovillarreal/conflux/pkg/wal"
+	"go.uber.org/zap"
+)
+
+// NodeState represents the state of a Raft node
+type NodeState string
+
+const (
+	StateFollower  NodeState = "follower"
+	StateCandidate NodeState = "candidate"
+	StateLeader    NodeState = "leader"
+)
+
+// Node represents a Raft node
+type Node struct {
+	mu sync.RWMutex
+
+	// Persistent state (should be on stable storage)
+	currentTerm int
+	votedFor    string
+	log         []LogEntry
+
+	// Volatile state
+	commitIndex int
+	lastApplied int
+
+	// Leader state (reinitialized after election)
+	nextIndex  map[string]int
+	matchIndex map[string]int
+
+	// Node configuration
+	nodeID            string
+	peers             []string
+	state             NodeState
+	electionTimeout   time.Duration
+	heartbeatInterval time.Duration
+
+	// Channels
+	applyCh            chan ApplyMsg
+	electionResetEvent chan struct{}
+	stopCh             chan struct{}
+
+	// Persistence
+	wal         *wal.WAL
+	snapshotter *snapshot.Snapshotter
+	dataDir     string
+
+	// Configuration
+	logger *zap.Logger
+	server *http.Server
+}
+
+// LogEntry represents a single log entry
+type LogEntry struct {
+	Term    int
+	Index   int
+	Command interface{}
+}
+
+// ApplyMsg is sent to the state machine
+type ApplyMsg struct {
+	Command      interface{}
+	CommandIndex int
+	CommandValid bool
+}
+
+// NewNode creates a new Raft node
+func NewNode(nodeID string, peers []string, dataDir string, logger *zap.Logger) *Node {
+	return &Node{
+		nodeID:             nodeID,
+		peers:              peers,
+		state:              StateFollower,
+		currentTerm:        0,
+		votedFor:           "",
+		log:                []LogEntry{{Term: 0, Index: 0}}, // Index 0 is dummy
+		commitIndex:        0,
+		lastApplied:        0,
+		nextIndex:          make(map[string]int),
+		matchIndex:         make(map[string]int),
+		electionTimeout:    2000 * time.Millisecond,
+		heartbeatInterval:  50 * time.Millisecond,
+		applyCh:            make(chan ApplyMsg, 100),
+		electionResetEvent: make(chan struct{}, 1),
+		stopCh:             make(chan struct{}),
+		dataDir:            dataDir,
+		logger:             logger,
+	}
+}
+
+// Start begins the Raft node's main loop
+func (n *Node) Start() {
+	n.logger.Info("Starting Raft node", zap.String("nodeID", n.nodeID))
+	n.resetElectionTimeout()
+
+	// Start apply loop
+	n.startApplyLoop()
+
+	go n.run()
+}
+
+// run is the main loop for the Raft node
+func (n *Node) run() {
+	for {
+		select {
+		case <-n.stopCh:
+			n.logger.Info("Raft node stopping")
+			return
+		default:
+		}
+
+		n.mu.RLock()
+		state := n.state
+		n.mu.RUnlock()
+
+		switch state {
+		case StateFollower:
+			n.runFollower()
+		case StateCandidate:
+			n.runCandidate()
+		case StateLeader:
+			n.runLeader()
+		}
+	}
+}
+
+// runFollower runs the follower loop
+func (n *Node) runFollower() {
+	timeout := n.resetElectionTimeout()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-n.stopCh:
+			return
+		case <-n.electionResetEvent:
+			timer.Stop()
+			timer.Reset(n.resetElectionTimeout())
+		case <-timer.C:
+			n.logger.Info("Election timeout, becoming candidate")
+			n.mu.Lock()
+			n.state = StateCandidate
+			n.mu.Unlock()
+			return
+		}
+	}
+}
+
+// runCandidate runs the candidate loop
+func (n *Node) runCandidate() {
+	n.mu.Lock()
+	n.currentTerm++
+	n.state = StateCandidate
+	n.votedFor = n.nodeID
+	term := n.currentTerm
+	n.mu.Unlock()
+
+	n.logger.Info("Starting election", zap.Int("term", term))
+
+	// Vote for self
+	votesReceived := 1
+	votesNeeded := len(n.peers)/2 + 1
+
+	// Channel to collect vote results
+	voteCh := make(chan bool, len(n.peers))
+
+	// Send RequestVote to all peers
+	for _, peer := range n.peers {
+		if peer == n.nodeID {
+			continue
+		}
+		go func(peer string) {
+			args := &RequestVoteArgs{
+				Term:         term,
+				CandidateID:  n.nodeID,
+				LastLogIndex: n.getLastLogIndex(),
+				LastLogTerm:  n.getLastLogTerm(),
+			}
+			var reply RequestVoteReply
+			if err := n.sendRequestVote(peer, args, &reply); err != nil {
+				// RPC failed
+				voteCh <- false
+				return
+			}
+
+			// Process reply
+			n.mu.Lock()
+			defer n.mu.Unlock()
+
+			if n.state != StateCandidate || n.currentTerm != term {
+				voteCh <- false
+				return
+			}
+			if reply.Term > term {
+				n.currentTerm = reply.Term
+				n.state = StateFollower
+				n.votedFor = ""
+				voteCh <- false
+				return
+			}
+			voteCh <- reply.VoteGranted
+		}(peer)
+	}
+
+	timeout := n.resetElectionTimeout()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-n.stopCh:
+			return
+		case <-n.electionResetEvent:
+			// Another leader was elected or we received a valid AppendEntries
+			n.mu.Lock()
+			n.state = StateFollower
+			n.mu.Unlock()
+			return
+		case vote := <-voteCh:
+			n.mu.Lock()
+			if n.state != StateCandidate || n.currentTerm != term {
+				n.mu.Unlock()
+				return
+			}
+			if vote {
+				votesReceived++
+				if votesReceived >= votesNeeded {
+					n.logger.Info("Won election", zap.Int("term", term), zap.Int("votes", votesReceived))
+					n.state = StateLeader
+					// Reinitialize leader state
+					n.nextIndex = make(map[string]int)
+					n.matchIndex = make(map[string]int)
+					for _, p := range n.peers {
+						n.nextIndex[p] = n.getLastLogIndex() + 1
+						n.matchIndex[p] = 0
+					}
+					n.mu.Unlock()
+					// Trigger immediate heartbeat
+					n.sendHeartbeats()
+					return
+				}
+			}
+			n.mu.Unlock()
+		case <-timer.C:
+			// Election timeout, retry
+			return
+		}
+	}
+}
+
+// runLeader runs the leader loop
+func (n *Node) runLeader() {
+	n.logger.Info("Became leader", zap.Int("term", n.currentTerm))
+
+	ticker := time.NewTicker(n.heartbeatInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-n.stopCh:
+			return
+		case <-n.electionResetEvent:
+			// Stepped down (e.g. saw higher term)
+			n.mu.Lock()
+			n.state = StateFollower
+			n.mu.Unlock()
+			return
+		case <-ticker.C:
+			n.sendHeartbeats()
+		}
+	}
+}
+
+// Propose proposes a command to the Raft cluster
+func (n *Node) Propose(cmd interface{}) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
+	if n.state != StateLeader {
+		return fmt.Errorf("not leader")
+	}
+
+	entry := LogEntry{
+		Term:    n.currentTerm,
+		Index:   len(n.log),
+		Command: cmd,
+	}
+	n.log = append(n.log, entry)
+	n.matchIndex[n.nodeID] = entry.Index
+	n.nextIndex[n.nodeID] = entry.Index + 1
+
+	n.logger.Info("Proposed command", zap.Int("index", entry.Index), zap.Int("term", entry.Term))
+
+	// In a real implementation, we would signal the leader loop to send AppendEntries immediately
+	// For MVP v1, the heartbeat ticker will pick it up or we can trigger it
+
+	return nil
+}
+
+func (n *Node) sendHeartbeats() {
+	n.mu.RLock()
+	term := n.currentTerm
+	leaderID := n.nodeID
+	n.mu.RUnlock()
+
+	for _, peer := range n.peers {
+		if peer == n.nodeID {
+			continue
+		}
+		go func(peer string) {
+			// Get entries to send based on nextIndex
+			n.mu.RLock()
+			nextIdx := n.nextIndex[peer]
+			prevLogIndex := nextIdx - 1
+			prevLogTerm := 0
+			if prevLogIndex > 0 && prevLogIndex < len(n.log) {
+				prevLogTerm = n.log[prevLogIndex].Term
+			}
+
+			// Get entries from nextIndex onwards
+			var entries []LogEntry
+			if nextIdx < len(n.log) {
+				entries = make([]LogEntry, len(n.log)-nextIdx)
+				copy(entries, n.log[nextIdx:])
+			}
+
+			leaderCommit := n.commitIndex
+			n.mu.RUnlock()
+
+			args := &AppendEntriesArgs{
+				Term:         term,
+				LeaderID:     leaderID,
+				PrevLogIndex: prevLogIndex,
+				PrevLogTerm:  prevLogTerm,
+				Entries:      entries,
+				LeaderCommit: leaderCommit,
+			}
+
+			var reply AppendEntriesReply
+			if err := n.sendAppendEntries(peer, args, &reply); err != nil {
+				// RPC failed, will retry next heartbeat
+				return
+			}
+
+			// Process reply
+			n.mu.Lock()
+			defer n.mu.Unlock()
+
+			if n.state != StateLeader || n.currentTerm != term {
+				return
+			}
+
+			if reply.Term > term {
+				// Discovered higher term, step down
+				n.currentTerm = reply.Term
+				n.state = StateFollower
+				n.votedFor = ""
+				return
+			}
+
+			if reply.Success {
+				// Update nextIndex and matchIndex
+				newMatchIndex := prevLogIndex + len(entries)
+				if newMatchIndex > n.matchIndex[peer] {
+					n.matchIndex[peer] = newMatchIndex
+					n.nextIndex[peer] = newMatchIndex + 1
+				}
+
+				// Try to advance commitIndex
+				n.advanceCommitIndex()
+			} else {
+				// Log inconsistency, decrement nextIndex and retry
+				if n.nextIndex[peer] > 1 {
+					n.nextIndex[peer]--
+				}
+			}
+		}(peer)
+	}
+}
+
+// ApplyCh returns the apply channel
+func (n *Node) ApplyCh() <-chan ApplyMsg {
+	return n.applyCh
+}
+
+// GetState returns the current state
+func (n *Node) GetState() (NodeState, int) {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.state, n.currentTerm
+}
+
+// IsLeader returns true if this node is the leader
+func (n *Node) IsLeader() bool {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.state == StateLeader
+}
+
+// GetCommitIndex returns the current commit index
+func (n *Node) GetCommitIndex() int {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.commitIndex
+}

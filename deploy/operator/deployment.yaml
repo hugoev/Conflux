@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: raft-operator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: raft-operator
+  template:
+    metadata:
+      labels:
+        app: raft-operator
+    spec:
+      serviceAccountName: raft-operator
+      containers:
+      - name: manager
+        image: hugo/raft-operator:latest
+        args:
+        - --leader-elect
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+

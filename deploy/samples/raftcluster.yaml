@@ -1,0 +1,17 @@
+apiVersion: infra.hugo.dev/v1alpha1
+kind: RaftCluster
+metadata:
+  name: example-cluster
+  namespace: default
+spec:
+  replicas: 3
+  image: hugo/raft-node:latest
+  resources:
+    cpu: "250m"
+    memory: "256Mi"
+  storage:
+    size: "1Gi"
+  service:
+    type: ClusterIP
+    port: 8080
+
