@@ -420,6 +420,12 @@ func (n *Node) ApplyCh() <-chan ApplyMsg {
 	return n.applyCh
 }
 
+// ResetApplyCh recreates the apply channel (used after Stop)
+func (n *Node) ResetApplyCh() {
+	// Create a new buffered channel
+	n.applyCh = make(chan ApplyMsg, 100)
+}
+
 // GetState returns the current state
 func (n *Node) GetState() (NodeState, int) {
 	n.mu.RLock()

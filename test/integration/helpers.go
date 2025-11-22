@@ -16,12 +16,13 @@ import (
 
 // TestCluster represents a test Raft cluster
 type TestCluster struct {
-	Nodes   []*raft.Node
-	Stores  []*kv.Store
-	Ports   []int
-	DataDir string
-	t       *testing.T
-	mu      sync.Mutex
+	Nodes     []*raft.Node
+	Stores    []*kv.Store
+	Ports     []int
+	Listeners []net.Listener
+	DataDir   string
+	t         *testing.T
+	mu        sync.Mutex
 }
 
 // NewTestCluster creates a new test cluster with n nodes
@@ -31,21 +32,22 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 	// Create temporary directory for all nodes
 	dataDir := t.TempDir()
 
-	// Allocate ports for all nodes
-	ports := allocatePorts(t, n)
+	// Allocate ports and listeners
+	ports, listeners := allocatePorts(t, n)
 
 	// Build peer list
 	peers := make([]string, n)
 	for i := 0; i < n; i++ {
-		peers[i] = fmt.Sprintf("localhost:%d", ports[i])
+		peers[i] = fmt.Sprintf("127.0.0.1:%d", ports[i])
 	}
 
 	cluster := &TestCluster{
-		Nodes:   make([]*raft.Node, n),
-		Stores:  make([]*kv.Store, n),
-		Ports:   ports,
-		DataDir: dataDir,
-		t:       t,
+		Nodes:     make([]*raft.Node, n),
+		Stores:    make([]*kv.Store, n),
+		Ports:     ports,
+		Listeners: listeners,
+		DataDir:   dataDir,
+		t:         t,
 	}
 
 	// Create nodes
@@ -61,8 +63,21 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 		config.Level = zap.NewAtomicLevelAt(zap.ErrorLevel)
 		logger, _ := config.Build()
 
+		// Filter out self from peers
+		nodePeers := make([]string, 0, n-1)
+		for j, p := range peers {
+			if i != j {
+				nodePeers = append(nodePeers, p)
+			}
+		}
+
 		store := kv.NewStore()
-		node := raft.NewNode(nodeID, peers, nodeDataDir, logger)
+		node := raft.NewNode(nodeID, nodePeers, nodeDataDir, logger)
+
+		// Initialize persistence
+		if err := node.InitializePersistence(); err != nil {
+			t.Fatalf("Failed to initialize persistence for node %s: %v", nodeID, err)
+		}
 
 		// Wire up ApplyCh to Store (simulate main.go)
 		go func(n *raft.Node, s *kv.Store) {
@@ -106,9 +121,25 @@ func (c *TestCluster) Start() error {
 	defer c.mu.Unlock()
 
 	for i, node := range c.Nodes {
-		port := c.Ports[i]
 		node.Start()
-		if err := node.StartTransport(fmt.Sprintf(":%d", port)); err != nil {
+		// Use existing listener if available (from allocatePorts)
+		// Note: StartTransport takes ownership of the listener? No, http.Server.Serve does not close it on error usually, but does on Shutdown.
+		// However, we need to handle restarts. If we restart, we need a NEW listener because the old one is closed.
+
+		var listener net.Listener
+		if c.Listeners[i] != nil {
+			listener = c.Listeners[i]
+			// Clear it so we don't reuse it blindly on restart if we didn't mean to
+		} else {
+			// This case happens on RestartNode where we need a new listener
+			var err error
+			listener, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", c.Ports[i]))
+			if err != nil {
+				return fmt.Errorf("failed to bind for node %d: %w", i, err)
+			}
+		}
+
+		if err := node.StartTransport(listener); err != nil {
 			return fmt.Errorf("failed to start transport for node %d: %w", i, err)
 		}
 	}
@@ -209,8 +240,7 @@ func (c *TestCluster) RestartNode(idx int) error {
 	node := c.Nodes[idx]
 	port := c.Ports[idx]
 
-	// Stop if running
-	// Stop if running
+	// Stop the node
 	if err := node.Stop(); err != nil {
 		c.t.Logf("Failed to stop node during restart: %v", err)
 	}
@@ -218,9 +248,29 @@ func (c *TestCluster) RestartNode(idx int) error {
 	// Small delay to ensure cleanup
 	time.Sleep(100 * time.Millisecond)
 
-	// Restart
+	// Reset apply channel (since Stop closed it)
+	node.ResetApplyCh()
+
+	// Reinitialize persistence (WAL, snapshot, recovery)
+	if err := node.InitializePersistence(); err != nil {
+		return fmt.Errorf("failed to initialize persistence for restart: %w", err)
+	}
+
+	// Restart the node's main loops
 	node.Start()
-	return node.StartTransport(fmt.Sprintf(":%d", port))
+
+	// Create a new listener for the restart
+	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	if err != nil {
+		return fmt.Errorf("failed to bind for restart: %w", err)
+	}
+
+	// Start transport with the new listener
+	if err := node.StartTransport(listener); err != nil {
+		return fmt.Errorf("failed to start transport for restart: %w", err)
+	}
+
+	return nil
 }
 
 // WaitForCommitIndex waits for all nodes to reach at least the given commit index
@@ -249,7 +299,7 @@ func (c *TestCluster) WaitForCommitIndex(minIndex int, timeout time.Duration) er
 }
 
 // allocatePorts allocates n available ports for testing
-func allocatePorts(t *testing.T, n int) []int {
+func allocatePorts(t *testing.T, n int) ([]int, []net.Listener) {
 	t.Helper()
 
 	ports := make([]int, n)
@@ -257,7 +307,7 @@ func allocatePorts(t *testing.T, n int) []int {
 
 	// Allocate ports
 	for i := 0; i < n; i++ {
-		listener, err := net.Listen("tcp", "localhost:0")
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
 		if err != nil {
 			t.Fatalf("Failed to allocate port: %v", err)
 		}
@@ -265,15 +315,9 @@ func allocatePorts(t *testing.T, n int) []int {
 		ports[i] = listener.Addr().(*net.TCPAddr).Port
 	}
 
-	// Close listeners to free ports
-	for _, listener := range listeners {
-		listener.Close()
-	}
+	// Do NOT close listeners here. We pass them to the nodes.
 
-	// Small delay to ensure ports are released
-	time.Sleep(50 * time.Millisecond)
-
-	return ports
+	return ports, listeners
 }
 
 // AssertLeaderElected asserts that exactly one leader exists
