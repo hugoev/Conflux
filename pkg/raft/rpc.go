@@ -34,6 +34,16 @@ type RequestVoteReply struct {
 
 // AppendEntries handles AppendEntries RPC
 func (n *Node) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
+	// Check if node is stopped before processing append entries
+	select {
+	case <-n.stopCh:
+		// Node is stopped, reject append entries
+		reply.Term = n.currentTerm
+		reply.Success = false
+		return
+	default:
+	}
+
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -121,6 +131,16 @@ func (n *Node) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply)
 
 // RequestVote handles RequestVote RPC
 func (n *Node) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) error {
+	// Check if node is stopped before processing vote request
+	select {
+	case <-n.stopCh:
+		// Node is stopped, don't grant votes
+		reply.Term = n.currentTerm
+		reply.VoteGranted = false
+		return nil
+	default:
+	}
+
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
