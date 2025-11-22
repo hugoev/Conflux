@@ -104,6 +104,9 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 		// This goroutine will be recreated in Start() if node is restarted
 		go func(n *raft.Node, s *kv.Store) {
 			applyCh := n.ApplyCh()
+			if applyCh == nil {
+				return // Channel not ready or closed
+			}
 			for msg := range applyCh {
 				if msg.CommandValid {
 					if cmd, ok := msg.Command.(*kv.Command); ok {
@@ -164,6 +167,9 @@ func (c *TestCluster) Start() error {
 		store := c.Stores[i]
 		go func(n *raft.Node, s *kv.Store) {
 			applyCh := n.ApplyCh()
+			if applyCh == nil {
+				return // Channel not ready
+			}
 			for msg := range applyCh {
 				if msg.CommandValid {
 					if cmd, ok := msg.Command.(*kv.Command); ok {

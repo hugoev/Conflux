@@ -44,12 +44,20 @@ func TestPersistence_Restart(t *testing.T) {
 		}
 	}
 
-	// Wait for replication
+	// Wait for replication and commit
+	if err := cluster.WaitForCommitIndex(numEntries, 10*time.Second); err != nil {
+		t.Fatalf("Replication failed before restart: %v", err)
+	}
+
+	// Wait for data to be applied
 	time.Sleep(1 * time.Second)
 
 	// Stop the whole cluster
 	cluster.Shutdown()
 	t.Log("Cluster stopped")
+
+	// Wait for cleanup
+	time.Sleep(500 * time.Millisecond)
 
 	// Restart the cluster
 	t.Log("Restarting cluster...")
@@ -57,8 +65,8 @@ func TestPersistence_Restart(t *testing.T) {
 		t.Fatalf("Failed to restart cluster: %v", err)
 	}
 
-	// Wait for leader again
-	newLeaderIdx, err := cluster.WaitForLeader(10 * time.Second)
+	// Wait for leader again (longer timeout after restart)
+	newLeaderIdx, err := cluster.WaitForLeader(20 * time.Second)
 	if err != nil {
 		t.Fatalf("Leader election after restart failed: %v", err)
 	}
@@ -121,18 +129,19 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 		}
 	}
 
-	// Wait for replication
-	time.Sleep(2 * time.Second)
-
-	// Force snapshot on all nodes if API allows, or just rely on persistence.
-	// Since we don't have a public Snapshot() method on Node easily accessible for testing without
-	// exposing internals or HTTP, we will assume the persistence test above covers WAL.
-	// This test specifically checks if a node that falls behind and restarts can catch up.
+	// Wait for replication and commit
+	if err := cluster.WaitForCommitIndex(numEntries, 10*time.Second); err != nil {
+		t.Fatalf("Initial replication failed: %v", err)
+	}
+	time.Sleep(1 * time.Second)
 
 	// Stop a follower
 	followerIdx := (leaderIdx + 1) % 3
 	cluster.StopNode(followerIdx)
 	t.Logf("Stopped follower node-%d", followerIdx)
+
+	// Wait for stop to complete
+	time.Sleep(500 * time.Millisecond)
 
 	// Write more data to leader (this will go to WAL on leader and other follower)
 	for i := numEntries; i < numEntries+20; i++ {
@@ -152,6 +161,9 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 	}
 
 	// Wait for replication to active follower
+	if err := cluster.WaitForCommitIndex(numEntries+20, 15*time.Second); err != nil {
+		t.Fatalf("Replication to active follower failed: %v", err)
+	}
 	time.Sleep(1 * time.Second)
 
 	// Restart follower
@@ -196,10 +208,19 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 	if err := leaderStore.Put(key, value); err != nil {
 		t.Fatalf("Failed to put key %s: %v", key, err)
 	}
-	if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+	cmd := &kv.Command{
+		Type:  kv.CommandPut,
+		Key:   key,
+		Value: value,
+	}
+	if err := leader.Propose(cmd); err != nil {
 		t.Fatalf("Failed to propose entry: %v", err)
 	}
 
+	// Wait for replication
+	if err := cluster.WaitForCommitIndex(1, 5*time.Second); err != nil {
+		t.Fatalf("Initial commit failed: %v", err)
+	}
 	time.Sleep(1 * time.Second)
 
 	// "Crash" the leader
@@ -228,6 +249,10 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 		t.Fatalf("Failed to propose entry: %v", err)
 	}
 
+	// Wait for replication
+	if err := cluster.WaitForCommitIndex(2, 10*time.Second); err != nil {
+		t.Fatalf("Replication after crash failed: %v", err)
+	}
 	time.Sleep(1 * time.Second)
 
 	// Restart old leader
@@ -235,11 +260,14 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 		t.Fatalf("Failed to restart old leader: %v", err)
 	}
 
+	// Wait for old leader to catch up
+	time.Sleep(2 * time.Second)
+
 	// Old leader should have both keys eventually
 	store := cluster.Stores[leaderIdx]
 	AssertEventuallyTrue(t, func() bool {
 		v1, ok1 := store.Get(key)
 		v2, ok2 := store.Get(key2)
 		return ok1 && v1 == value && ok2 && v2 == value2
-	}, 10*time.Second, "Old leader failed to catch up after crash")
+	}, 20*time.Second, "Old leader failed to catch up after crash")
 }

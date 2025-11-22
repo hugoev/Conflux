@@ -9,6 +9,7 @@ import (
 )
 
 // waitForDNSReady waits for peer DNS names to be resolvable before starting Raft
+//
 //nolint:unused // Reserved for future use
 func (n *Node) waitForDNSReady() {
 	n.logger.Info("Waiting for DNS to be ready for peers")

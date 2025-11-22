@@ -49,6 +49,10 @@ type Node struct {
 	electionResetEvent chan struct{}
 	stopCh             chan struct{}
 
+	// Channel management
+	applyChMu     sync.RWMutex // Protects applyCh access
+	applyChClosed bool         // Tracks if channel is closed
+
 	// Persistence
 	wal         *wal.WAL
 	snapshotter *snapshot.Snapshotter
@@ -91,6 +95,7 @@ func NewNode(nodeID string, peers []string, dataDir string, logger *zap.Logger) 
 		applyCh:            make(chan ApplyMsg, 100),
 		electionResetEvent: make(chan struct{}, 1),
 		stopCh:             make(chan struct{}),
+		applyChClosed:      false,
 		dataDir:            dataDir,
 		logger:             logger,
 	}
@@ -417,16 +422,23 @@ func (n *Node) sendHeartbeats() {
 
 // ApplyCh returns the apply channel
 // This method is thread-safe and returns a read-only channel
+// Returns nil if the channel has been closed
 func (n *Node) ApplyCh() <-chan ApplyMsg {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
+	n.applyChMu.RLock()
+	defer n.applyChMu.RUnlock()
+	if n.applyChClosed || n.applyCh == nil {
+		return nil
+	}
 	return n.applyCh
 }
 
 // ResetApplyCh recreates the apply channel (used after Stop)
 func (n *Node) ResetApplyCh() {
+	n.applyChMu.Lock()
+	defer n.applyChMu.Unlock()
 	// Create a new buffered channel
 	n.applyCh = make(chan ApplyMsg, 100)
+	n.applyChClosed = false
 }
 
 // GetState returns the current state
@@ -460,4 +472,11 @@ func (n *Node) IsStopped() bool {
 	default:
 		return false
 	}
+}
+
+// IsApplyChClosed returns true if the apply channel has been closed
+func (n *Node) IsApplyChClosed() bool {
+	n.applyChMu.RLock()
+	defer n.applyChMu.RUnlock()
+	return n.applyChClosed || n.applyCh == nil
 }

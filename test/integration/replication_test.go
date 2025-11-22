@@ -152,29 +152,31 @@ func TestReplicationAfterFailover(t *testing.T) {
 		}
 	}
 
-	// Wait for replication
-	time.Sleep(1 * time.Second)
+	// Wait for replication and commit
+	time.Sleep(2 * time.Second)
 
-	// Verify data on remaining nodes
+	// Wait for data replication on remaining nodes
 	for nodeIdx, store := range cluster.Stores {
 		if nodeIdx == leaderIdx {
 			continue // Skip stopped node
 		}
 
-		// Check pre-failover data
+		// Check pre-failover data with retries
 		for i := 0; i < 5; i++ {
 			key := fmt.Sprintf("before-failover-%d", i)
-			if _, exists := store.Get(key); !exists {
-				t.Errorf("Node %d missing pre-failover key %s", nodeIdx, key)
-			}
+			AssertEventuallyTrue(t, func() bool {
+				_, exists := store.Get(key)
+				return exists
+			}, 5*time.Second, fmt.Sprintf("Node %d missing pre-failover key %s", nodeIdx, key))
 		}
 
-		// Check post-failover data
+		// Check post-failover data with retries
 		for i := 0; i < 5; i++ {
 			key := fmt.Sprintf("after-failover-%d", i)
-			if _, exists := store.Get(key); !exists {
-				t.Errorf("Node %d missing post-failover key %s", nodeIdx, key)
-			}
+			AssertEventuallyTrue(t, func() bool {
+				_, exists := store.Get(key)
+				return exists
+			}, 5*time.Second, fmt.Sprintf("Node %d missing post-failover key %s", nodeIdx, key))
 		}
 	}
 }

@@ -327,7 +327,12 @@ func TestPerformanceThroughput(t *testing.T) {
 
 	t.Logf("Write throughput: %.2f ops/sec (%d writes in %v)", throughput, numWrites, elapsed)
 
-	// Wait for replication
+	// Wait for replication and commit
+	if err := cluster.WaitForCommitIndex(numWrites, 30*time.Second); err != nil {
+		t.Fatalf("Replication failed: %v", err)
+	}
+
+	// Wait for data to be applied
 	time.Sleep(2 * time.Second)
 
 	// Verify all writes

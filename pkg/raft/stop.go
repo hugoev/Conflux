@@ -38,13 +38,14 @@ func (n *Node) Stop() error {
 	time.Sleep(500 * time.Millisecond)
 
 	// Close apply channel only after goroutines have exited
-	// Use a mutex to ensure no one is sending
-	n.mu.Lock()
-	if n.applyCh != nil {
+	// Use applyChMu to ensure no one is accessing it
+	n.applyChMu.Lock()
+	if n.applyCh != nil && !n.applyChClosed {
 		close(n.applyCh)
-		n.applyCh = nil // Prevent double close
+		n.applyChClosed = true
+		// Don't set to nil - keep reference for IsStopped() checks
 	}
-	n.mu.Unlock()
+	n.applyChMu.Unlock()
 
 	n.logger.Info("Raft node stopped")
 	return nil
