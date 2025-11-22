@@ -361,7 +361,7 @@ func TestPerformanceThroughput(t *testing.T) {
 			expectedValue := fmt.Sprintf("value-%d", i)
 			allMatch := true
 
-			for nodeIdx, store := range cluster.Stores {
+			for _, store := range cluster.Stores {
 				value, exists := store.Get(key)
 				if !exists || value != expectedValue {
 					allMatch = false
