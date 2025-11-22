@@ -35,6 +35,15 @@ kind-create:
 kind-delete:
 	kind delete cluster --name conflux
 
+# Operator proxy targets
+.PHONY: install
+install:
+	cd operator && make install
+
+.PHONY: deploy
+deploy:
+	cd operator && make deploy IMG=$(IMG)
+
 
 .PHONY: test-unit test-integration test-e2e test-all
 test-unit:
