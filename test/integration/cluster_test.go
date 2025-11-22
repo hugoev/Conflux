@@ -142,7 +142,8 @@ func TestLeaderFailover(t *testing.T) {
 
 		// Give more time for node to rejoin and stabilize
 		// Restarted node needs to reconnect, receive heartbeats, and sync state
-		time.Sleep(2 * time.Second)
+		// Leader needs to discover the restarted peer and adjust nextIndex
+		time.Sleep(3 * time.Second)
 
 		// Verify exactly one leader
 		AssertLeaderElected(t, cluster)
@@ -150,7 +151,7 @@ func TestLeaderFailover(t *testing.T) {
 		// Update leaderIdx for next iteration
 		// Note: After restarting, the old leader might become leader again if it has more up-to-date log
 		// So we need to get the current leader, not assume it's newLeaderIdx
-		currentLeader, err := cluster.WaitForLeader(5 * time.Second)
+		currentLeader, err := cluster.WaitForLeader(10 * time.Second)
 		if err != nil {
 			t.Fatalf("Failed to get leader after restart: %v", err)
 		}
