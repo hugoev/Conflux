@@ -35,16 +35,19 @@ type RequestVoteReply struct {
 // AppendEntries handles AppendEntries RPC
 func (n *Node) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
 	// Check if node is stopped before processing append entries
+	// This must be the FIRST check to prevent any processing of stopped nodes
 	select {
 	case <-n.stopCh:
-		// Node is stopped, reject append entries
-		// Need to get currentTerm with lock
+		// Node is stopped, reject append entries immediately
+		// Need to get currentTerm with lock for proper response
 		n.mu.RLock()
 		reply.Term = n.currentTerm
 		n.mu.RUnlock()
 		reply.Success = false
+		n.logger.Debug("Rejected AppendEntries: node is stopped")
 		return
 	default:
+		// Node is not stopped, continue processing
 	}
 
 	n.mu.Lock()
@@ -135,16 +138,21 @@ func (n *Node) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply)
 // RequestVote handles RequestVote RPC
 func (n *Node) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) error {
 	// Check if node is stopped before processing vote request
+	// This must be the FIRST check to prevent stopped nodes from granting votes
 	select {
 	case <-n.stopCh:
 		// Node is stopped, don't grant votes
-		// Need to get currentTerm with lock
+		// Need to get currentTerm with lock for proper response
 		n.mu.RLock()
 		reply.Term = n.currentTerm
 		n.mu.RUnlock()
 		reply.VoteGranted = false
+		n.logger.Debug("Rejected RequestVote: node is stopped",
+			zap.String("candidate", args.CandidateID),
+			zap.Int("term", args.Term))
 		return nil
 	default:
+		// Node is not stopped, continue processing
 	}
 
 	n.mu.Lock()

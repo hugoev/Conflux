@@ -168,14 +168,20 @@ func (n *Node) runCandidate() {
 	term := n.currentTerm
 	n.mu.Unlock()
 
-	n.logger.Info("Starting election", zap.Int("term", term), zap.Int("peers", len(n.peers)))
+	// Calculate votes needed based on total cluster size (peers + self)
+	// For a cluster of N nodes, we need (N/2 + 1) votes
+	// This is the Raft requirement: majority of TOTAL configured cluster, not just active nodes
+	totalNodes := len(n.peers) + 1 // peers doesn't include self
+	votesNeeded := totalNodes/2 + 1
+
+	n.logger.Info("Starting election",
+		zap.Int("term", term),
+		zap.Int("peers", len(n.peers)),
+		zap.Int("total_nodes", totalNodes),
+		zap.Int("votes_needed", votesNeeded))
 
 	// Vote for self
 	votesReceived := 1
-	// Calculate votes needed based on total cluster size (peers + self)
-	// For a cluster of N nodes, we need (N/2 + 1) votes
-	totalNodes := len(n.peers) + 1 // peers doesn't include self
-	votesNeeded := totalNodes/2 + 1
 
 	// Channel to collect vote results
 	voteCh := make(chan bool, len(n.peers))
@@ -262,7 +268,12 @@ func (n *Node) runCandidate() {
 			}
 			if vote {
 				votesReceived++
-				n.logger.Info("Received vote", zap.Int("term", term), zap.Int("votes", votesReceived), zap.Int("needed", votesNeeded))
+				n.logger.Info("Received vote",
+					zap.Int("term", term),
+					zap.Int("votes", votesReceived),
+					zap.Int("needed", votesNeeded),
+					zap.Int("total_nodes", totalNodes),
+					zap.Int("peers_count", len(n.peers)))
 				if votesReceived >= votesNeeded {
 					n.logger.Info("Won election", zap.Int("term", term), zap.Int("votes", votesReceived))
 					n.state = StateLeader

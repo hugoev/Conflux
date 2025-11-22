@@ -11,7 +11,8 @@ import (
 func (n *Node) Stop() error {
 	n.logger.Info("Stopping Raft node")
 
-	// Signal stop to all goroutines
+	// Signal stop to all goroutines FIRST
+	// This ensures RPC handlers will reject requests immediately
 	n.mu.Lock()
 	select {
 	case <-n.stopCh:
@@ -21,15 +22,21 @@ func (n *Node) Stop() error {
 	default:
 		close(n.stopCh)
 	}
+	// Set state to stopped to prevent any new operations
+	n.state = StateFollower // Prevent becoming leader/candidate
 	n.mu.Unlock()
 
-	// Shutdown HTTP server
+	// Shutdown HTTP server (stops accepting new connections)
+	// Existing connections will be closed gracefully
 	if n.server != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		if err := n.server.Shutdown(ctx); err != nil {
 			n.logger.Error("Failed to shutdown server", zap.Error(err))
-			// Continue with shutdown even if server shutdown fails
+			// Force close if graceful shutdown fails
+			if closeErr := n.server.Close(); closeErr != nil {
+				n.logger.Error("Failed to force close server", zap.Error(closeErr))
+			}
 		}
 	}
 
