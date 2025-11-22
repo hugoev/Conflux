@@ -219,7 +219,11 @@ func (n *Node) runCandidate() {
 			}
 
 			if err != nil {
-				// RPC failed after retries
+				// RPC failed after retries (peer is unreachable/stopped)
+				n.logger.Debug("RequestVote RPC failed",
+					zap.String("peer", peer),
+					zap.Error(err),
+					zap.Int("term", term))
 				voteCh <- false
 				return
 			}
