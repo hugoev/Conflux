@@ -36,7 +36,8 @@ func (n *Node) startApplyLoop() {
 						Command:      entry.Command,
 						CommandIndex: entry.Index,
 					}
-					// Check if channel is closed before sending
+
+					// Get applyCh safely
 					n.applyChMu.RLock()
 					if n.applyChClosed || n.applyCh == nil {
 						n.applyChMu.RUnlock()
@@ -46,18 +47,34 @@ func (n *Node) startApplyLoop() {
 					applyCh := n.applyCh
 					n.applyChMu.RUnlock()
 
+					// Try to send (with timeout to avoid blocking forever)
 					select {
 					case applyCh <- msg:
 						n.logger.Debug("Applied entry", zap.Int("index", entry.Index), zap.Int("term", entry.Term))
 					case <-n.stopCh:
 						return
-					default:
-						// Channel full, wait a bit and retry
+					case <-time.After(100 * time.Millisecond):
+						// Channel might be full, check if it's still valid
+						n.applyChMu.RLock()
+						if n.applyChClosed || n.applyCh == nil {
+							n.applyChMu.RUnlock()
+							return
+						}
+						n.applyChMu.RUnlock()
+						// Retry once more
 						select {
+						case applyCh <- msg:
+							n.logger.Debug("Applied entry (retry)", zap.Int("index", entry.Index), zap.Int("term", entry.Term))
 						case <-n.stopCh:
 							return
-						case <-time.After(10 * time.Millisecond):
-							// Retry sending
+						default:
+							// Channel still full, skip this entry for now (will retry on next iteration)
+							n.logger.Warn("Apply channel full, will retry", zap.Int("index", entry.Index))
+							// Decrement lastApplied so we retry this entry
+							n.mu.Lock()
+							n.lastApplied = entry.Index - 1
+							n.mu.Unlock()
+							return
 						}
 					}
 				}
