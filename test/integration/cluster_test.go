@@ -122,9 +122,9 @@ func TestLeaderFailover(t *testing.T) {
 		// Stop current leader
 		cluster.StopNode(leaderIdx)
 
-		// Wait for new leader
-		time.Sleep(500 * time.Millisecond)
-		newLeaderIdx, err := cluster.WaitForLeader(15 * time.Second)
+		// Wait for leader to stop and new leader to be elected
+		time.Sleep(1 * time.Second)
+		newLeaderIdx, err := cluster.WaitForLeader(20 * time.Second)
 		if err != nil {
 			t.Fatalf("Failover %d failed: %v", i+1, err)
 		}

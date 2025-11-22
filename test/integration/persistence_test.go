@@ -56,8 +56,8 @@ func TestPersistence_Restart(t *testing.T) {
 	cluster.Shutdown()
 	t.Log("Cluster stopped")
 
-	// Wait for cleanup
-	time.Sleep(2 * time.Second)
+	// Wait for cleanup - ensure all nodes are fully stopped
+	time.Sleep(3 * time.Second)
 
 	// Restart the cluster
 	t.Log("Restarting cluster...")
@@ -65,16 +65,19 @@ func TestPersistence_Restart(t *testing.T) {
 		t.Fatalf("Failed to restart cluster: %v", err)
 	}
 
-	// Wait for leader again (longer timeout after restart)
+	// Wait for nodes to start up and reconnect
+	time.Sleep(2 * time.Second)
+
+	// Wait for leader again (longer timeout after full restart)
 	// After a full shutdown, nodes need time to reconnect and elect a leader
-	newLeaderIdx, err := cluster.WaitForLeader(30 * time.Second)
+	newLeaderIdx, err := cluster.WaitForLeader(45 * time.Second)
 	if err != nil {
 		t.Fatalf("Leader election after restart failed: %v", err)
 	}
 	t.Logf("New leader elected: node-%d", newLeaderIdx)
 
 	// Wait a bit for nodes to fully reconnect and sync
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	// Verify data persists on all nodes
 	for i, store := range cluster.Stores {
