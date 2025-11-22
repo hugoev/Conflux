@@ -337,10 +337,10 @@ func (n *Node) Propose(cmd interface{}) error {
 	// This improves latency and test reliability
 	// Note: sendHeartbeats acquires its own locks, so we release our lock first
 	n.mu.Unlock()
-	
+
 	// Send heartbeats to replicate the new entry immediately
 	n.sendHeartbeats()
-	
+
 	// Re-acquire lock (though we're about to return, this maintains lock discipline)
 	n.mu.Lock()
 
