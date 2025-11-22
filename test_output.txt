@@ -1,0 +1,1715 @@
+=== RUN   TestClusterFormation
+=== RUN   TestClusterFormation/3-node_cluster
+    cluster_test.go:42: Leader elected: node-2
+=== RUN   TestClusterFormation/5-node_cluster
+    cluster_test.go:42: Leader elected: node-2
+--- PASS: TestClusterFormation (0.41s)
+    --- PASS: TestClusterFormation/3-node_cluster (0.20s)
+    --- PASS: TestClusterFormation/5-node_cluster (0.21s)
+=== RUN   TestLeaderElection
+    cluster_test.go:78: Initial leader: node-0
+    cluster_test.go:82: Stopped leader node-0
+    cluster_test.go:92: New leader elected: node-1
+--- PASS: TestLeaderElection (2.40s)
+=== RUN   TestLeaderFailover
+    cluster_test.go:120: Failover iteration 1, current leader: node-1
+    cluster_test.go:120: Failover iteration 2, current leader: node-2
+    cluster_test.go:120: Failover iteration 3, current leader: node-0
+--- PASS: TestLeaderFailover (19.42s)
+=== RUN   TestSplitVotePrevention
+=== RUN   TestSplitVotePrevention/iteration
+=== RUN   TestSplitVotePrevention/iteration#01
+=== RUN   TestSplitVotePrevention/iteration#02
+=== RUN   TestSplitVotePrevention/iteration#03
+=== RUN   TestSplitVotePrevention/iteration#04
+--- PASS: TestSplitVotePrevention (1.32s)
+    --- PASS: TestSplitVotePrevention/iteration (0.20s)
+    --- PASS: TestSplitVotePrevention/iteration#01 (0.30s)
+    --- PASS: TestSplitVotePrevention/iteration#02 (0.30s)
+    --- PASS: TestSplitVotePrevention/iteration#03 (0.30s)
+    --- PASS: TestSplitVotePrevention/iteration#04 (0.20s)
+=== RUN   TestHeartbeats
+--- PASS: TestHeartbeats (2.31s)
+=== RUN   TestMinorityNodeFailure
+    cluster_test.go:245: Stopped node-0
+    cluster_test.go:245: Stopped node-1
+--- PASS: TestMinorityNodeFailure (0.71s)
+=== RUN   TestMajorityNodeFailure
+--- PASS: TestMajorityNodeFailure (9.51s)
+=== RUN   TestNetworkPartition
+    network_test.go:62: Stopped nodes: [1 2] (minority partition)
+    network_test.go:111: Partition healed, waiting for nodes to catch up...
+--- PASS: TestNetworkPartition (8.33s)
+=== RUN   TestSplitBrainPrevention
+    network_test.go:164: Stopped leader node-1 and follower node-2
+    network_test.go:194: Leader elected with 2/3 majority: node-0
+    network_test.go:217: Leader elected after majority restored: node-0
+--- PASS: TestSplitBrainPrevention (8.81s)
+=== RUN   TestConcurrentOperations
+fatal error: sync: unlock of unlocked mutex
+
+goroutine 13445 [running]:
+internal/sync.fatal({0x1028b7c56?, 0x1ffffffff?})
+	/usr/local/go/src/runtime/panic.go:1068 +0x20
+internal/sync.(*Mutex).unlockSlow(0xc00032a9f8, 0xffffffff)
+	/usr/local/go/src/internal/sync/mutex.go:204 +0x44
+internal/sync.(*Mutex).Unlock(0xc00032a9f8)
+	/usr/local/go/src/internal/sync/mutex.go:198 +0x4c
+sync.(*Mutex).Unlock(0xc00032a9f8)
+	/usr/local/go/src/sync/mutex.go:65 +0x30
+github.com/hugovillarreal/conflux/test/integration.(*TestCluster).WaitForCommitIndex(0xc00032a980, 0xc8, 0xdf8475800)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:424 +0x14c
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations(0xc000242c40)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:284 +0x474
+testing.tRunner(0xc000242c40, 0x102a235d8)
+	/usr/local/go/src/testing/testing.go:1792 +0x184
+created by testing.(*T).Run in goroutine 1
+	/usr/local/go/src/testing/testing.go:1851 +0x688
+
+goroutine 1 [chan receive]:
+testing.(*T).Run(0xc000102c40, {0x1028b400d, 0x18}, 0x102a235d8)
+	/usr/local/go/src/testing/testing.go:1859 +0x6a4
+testing.runTests.func1(0xc000102c40)
+	/usr/local/go/src/testing/testing.go:2279 +0x80
+testing.tRunner(0xc000102c40, 0xc00013fad8)
+	/usr/local/go/src/testing/testing.go:1792 +0x184
+testing.runTests(0xc0001243a8, {0x102cd68e0, 0x13, 0x13}, {0x1925ae4f73144e37?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/testing/testing.go:2277 +0x780
+testing.(*M).Run(0xc000126820)
+	/usr/local/go/src/testing/testing.go:2142 +0xb6c
+main.main()
+	_testmain.go:81 +0x114
+
+goroutine 155 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 154
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 24 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 23
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 25 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 23
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 26 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 23
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 105 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 102
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 104 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 102
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16546 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc000225d48?, 0xbc?, 0xc000225d78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13480
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 103 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 102
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16526 [select]:
+net/http.(*persistConn).writeLoop(0xc000200d80)
+	/usr/local/go/src/net/http/transport.go:2590 +0x120
+created by net/http.(*Transport).dialConn in goroutine 16632
+	/usr/local/go/src/net/http/transport.go:1945 +0x21f8
+
+goroutine 106 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 102
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16522 [IO wait]:
+internal/poll.runtime_pollWait(0x104072620, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00032a420, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00032a400, {0xc0002fe881, 0x1, 0x1})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00032a400, {0xc0002fe881, 0x1, 0x1})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000064050, {0xc0002fe881, 0x1, 0x1})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*connReader).backgroundRead(0xc0002fe870)
+	/usr/local/go/src/net/http/server.go:690 +0x74
+created by net/http.(*connReader).startBackgroundRead in goroutine 16573
+	/usr/local/go/src/net/http/server.go:686 +0x15c
+
+goroutine 16594 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc00062dd48?, 0xbc?, 0xc00062dd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13479
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 5423 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5420
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 5290 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5287
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13453 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0000f8c38?, 0xbc?, 0xc0000f8c68?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389cc0)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389cc0)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389cc0)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389cc0)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).startApplyLoop.func1()
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/apply.go:22 +0xc0
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).startApplyLoop in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/apply.go:13 +0x9c
+
+goroutine 107 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 102
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 5542 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5541
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16505 [IO wait]:
+internal/poll.runtime_pollWait(0x14becb220, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00032a1a0, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00032a180, {0xc00022e671, 0x1, 0x1})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00032a180, {0xc00022e671, 0x1, 0x1})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000064000, {0xc00022e671, 0x1, 0x1})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*connReader).backgroundRead(0xc00022e660)
+	/usr/local/go/src/net/http/server.go:690 +0x74
+created by net/http.(*connReader).startBackgroundRead in goroutine 16572
+	/usr/local/go/src/net/http/server.go:686 +0x15c
+
+goroutine 157 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 154
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13474 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc000221c18?, 0xbc?, 0xc000221c48?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc000497650})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:450 +0x6ec
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x3)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 156 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 154
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16508 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0004f94e8?, 0xbc?, 0xc0004f9518?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000596140)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000596140)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000596140)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000596140)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).AppendEntries(0xc000596140, 0xc000392b40, 0xc0004f97b0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/rpc.go:68 +0x74
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).handleAppendEntriesHTTP(0xc000596140, {0x102a2bdc8, 0xc0006f0380}, 0xc00060edc0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:92 +0x1f4
+net/http.HandlerFunc.ServeHTTP(0xc0002972a0, {0x102a2bdc8, 0xc0006f0380}, 0xc00060edc0)
+	/usr/local/go/src/net/http/server.go:2294 +0x4c
+net/http.(*ServeMux).ServeHTTP(0xc000158cc0, {0x102a2bdc8, 0xc0006f0380}, 0xc00060edc0)
+	/usr/local/go/src/net/http/server.go:2822 +0x1c4
+net/http.serverHandler.ServeHTTP({0x102a2a8f8?}, {0x102a2bdc8, 0xc0006f0380}, 0xc00060edc0)
+	/usr/local/go/src/net/http/server.go:3301 +0x29c
+net/http.(*conn).serve(0xc0003c0cf0, {0x102a2c028, 0xc000196090})
+	/usr/local/go/src/net/http/server.go:2102 +0xeb8
+created by net/http.(*Server).Serve in goroutine 13460
+	/usr/local/go/src/net/http/server.go:3454 +0x678
+
+goroutine 16625 [select]:
+net/http.(*persistConn).roundTrip(0xc000096240, 0xc000480230)
+	/usr/local/go/src/net/http/transport.go:2826 +0x9b0
+net/http.(*Transport).roundTrip(0xc0002c8340, 0xc00039cc80)
+	/usr/local/go/src/net/http/transport.go:696 +0xf28
+net/http.(*Transport).RoundTrip(0xc0002c8340, 0xc00039cc80)
+	/usr/local/go/src/net/http/roundtrip.go:30 +0x34
+net/http.send(0xc00039c780, {0x102a27f60, 0xc0002c8340}, {0x0?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:259 +0x670
+net/http.(*Client).send(0xc0004967e0, 0xc00039c780, {0x0?, 0x14?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:180 +0x108
+net/http.(*Client).do(0xc0004967e0, 0xc00039c780)
+	/usr/local/go/src/net/http/client.go:728 +0xdd8
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:587
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendAppendEntries(0xc000389900?, {0xc00000f0c1, 0xf}, 0xc000480000, 0xc00040cef0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:161 +0x43c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:497 +0x370
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13473
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 6168 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 6165
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16509 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc00063b4e8?, 0xbc?, 0xc00063b518?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000596140)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000596140)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000596140)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000596140)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).AppendEntries(0xc000596140, 0xc00001e640, 0xc00063b7b0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/rpc.go:68 +0x74
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).handleAppendEntriesHTTP(0xc000596140, {0x102a2bdc8, 0xc0003e02a0}, 0xc0002a43c0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:92 +0x1f4
+net/http.HandlerFunc.ServeHTTP(0xc0002972a0, {0x102a2bdc8, 0xc0003e02a0}, 0xc0002a43c0)
+	/usr/local/go/src/net/http/server.go:2294 +0x4c
+net/http.(*ServeMux).ServeHTTP(0xc000158cc0, {0x102a2bdc8, 0xc0003e02a0}, 0xc0002a43c0)
+	/usr/local/go/src/net/http/server.go:2822 +0x1c4
+net/http.serverHandler.ServeHTTP({0x102a2a8f8?}, {0x102a2bdc8, 0xc0003e02a0}, 0xc0002a43c0)
+	/usr/local/go/src/net/http/server.go:3301 +0x29c
+net/http.(*conn).serve(0xc0003c0d80, {0x102a2c028, 0xc000196090})
+	/usr/local/go/src/net/http/server.go:2102 +0xeb8
+created by net/http.(*Server).Serve in goroutine 13460
+	/usr/local/go/src/net/http/server.go:3454 +0x678
+
+goroutine 16543 [select]:
+net/http.(*persistConn).roundTrip(0xc0006897a0, 0xc000392730)
+	/usr/local/go/src/net/http/transport.go:2826 +0x9b0
+net/http.(*Transport).roundTrip(0xc00050c340, 0xc00060eb40)
+	/usr/local/go/src/net/http/transport.go:696 +0xf28
+net/http.(*Transport).RoundTrip(0xc00050c340, 0xc00060eb40)
+	/usr/local/go/src/net/http/roundtrip.go:30 +0x34
+net/http.send(0xc00060ea00, {0x102a27f60, 0xc00050c340}, {0x0?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:259 +0x670
+net/http.(*Client).send(0xc0002ff050, 0xc00060ea00, {0x0?, 0x14?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:180 +0x108
+net/http.(*Client).do(0xc0002ff050, 0xc00060ea00)
+	/usr/local/go/src/net/http/client.go:728 +0xdd8
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:587
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendAppendEntries(0xc000389900?, {0xc00000f0a1, 0xf}, 0xc0003925f0, 0xc000192680)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:161 +0x43c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:497 +0x370
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13450
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 13480 [runnable]:
+internal/sync.runtime_Semrelease(0xc002844eec?, 0xff?, 0xc0000000bc?)
+	/usr/local/go/src/runtime/sema.go:120 +0x1c
+internal/sync.(*Mutex).unlockSlow(0xc000389900, 0xbc)
+	/usr/local/go/src/internal/sync/mutex.go:232 +0x6c
+internal/sync.(*Mutex).Unlock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:198 +0x4c
+sync.(*Mutex).Unlock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:65 +0x30
+sync.(*RWMutex).Unlock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:219 +0xb8
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc0004976e0})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:444 +0x6dc
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x9)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 5543 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5541
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 11839 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 11836
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 7801 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 7797
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 397 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 395
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 398 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 395
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13478 [runnable]:
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats(0xc000389900)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:461 +0xc8
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc0004976b0})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:447 +0x6e4
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x7)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 396 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 395
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 7802 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 7797
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16460 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc00054fd48?, 0xbc?, 0xc00054fd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13474
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16663 [IO wait]:
+internal/poll.runtime_pollWait(0x104072850, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00009c4a0, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00009c480, {0xc00061b421, 0x1, 0x1})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00009c480, {0xc00061b421, 0x1, 0x1})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000316080, {0xc00061b421, 0x1, 0x1})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*connReader).backgroundRead(0xc00061b410)
+	/usr/local/go/src/net/http/server.go:690 +0x74
+created by net/http.(*connReader).startBackgroundRead in goroutine 16662
+	/usr/local/go/src/net/http/server.go:686 +0x15c
+
+goroutine 5272 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5269
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 6170 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 6165
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16608 [select]:
+net/http.(*persistConn).roundTrip(0xc000200000, 0xc000146280)
+	/usr/local/go/src/net/http/transport.go:2826 +0x9b0
+net/http.(*Transport).roundTrip(0xc0001e81a0, 0xc0005963c0)
+	/usr/local/go/src/net/http/transport.go:696 +0xf28
+net/http.(*Transport).RoundTrip(0xc0001e81a0, 0xc0005963c0)
+	/usr/local/go/src/net/http/roundtrip.go:30 +0x34
+net/http.send(0xc000596280, {0x102a27f60, 0xc0001e81a0}, {0x0?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:259 +0x670
+net/http.(*Client).send(0xc0004aa3c0, 0xc000596280, {0x0?, 0x14?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:180 +0x108
+net/http.(*Client).do(0xc0004aa3c0, 0xc000596280)
+	/usr/local/go/src/net/http/client.go:728 +0xdd8
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:587
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendAppendEntries(0xc000389900?, {0xc00000f0a1, 0xf}, 0xc0001461e0, 0xc0005959e0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:161 +0x43c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:497 +0x370
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13473
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 5375 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5374
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13452 [IO wait]:
+internal/poll.runtime_pollWait(0x104072738, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00032a820, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Accept(0xc00032a800)
+	/usr/local/go/src/internal/poll/fd_unix.go:620 +0x3a8
+net.(*netFD).accept(0xc00032a800)
+	/usr/local/go/src/net/fd_unix.go:172 +0x38
+net.(*TCPListener).accept(0xc00029cfc0)
+	/usr/local/go/src/net/tcpsock_posix.go:159 +0x40
+net.(*TCPListener).Accept(0xc00029cfc0)
+	/usr/local/go/src/net/tcpsock.go:380 +0x68
+net/http.(*Server).Serve(0xc000366500, {0x102a2bb58, 0xc00029cfc0})
+	/usr/local/go/src/net/http/server.go:3424 +0x488
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).StartTransport.func2()
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:37 +0x144
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).StartTransport in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:35 +0x3c4
+
+goroutine 16545 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0003b1d48?, 0xbc?, 0xc0003b1d78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13480
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 13457 [runnable]:
+internal/sync.runtime_SemacquireMutex(0xc00046ec38?, 0xbc?, 0xc00046ec68?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000596140)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000596140)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000596140)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000596140)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).startApplyLoop.func1()
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/apply.go:22 +0xc0
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).startApplyLoop in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/apply.go:13 +0x9c
+
+goroutine 13476 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0004f1c18?, 0xbc?, 0xc0004f1c48?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc000497680})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:450 +0x6ec
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x5)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 16611 [select]:
+net/http.(*persistConn).writeLoop(0xc000096240)
+	/usr/local/go/src/net/http/transport.go:2590 +0x120
+created by net/http.(*Transport).dialConn in goroutine 16557
+	/usr/local/go/src/net/http/transport.go:1945 +0x21f8
+
+goroutine 16613 [select]:
+net/http.(*persistConn).writeLoop(0xc0004e3680)
+	/usr/local/go/src/net/http/transport.go:2590 +0x120
+created by net/http.(*Transport).dialConn in goroutine 16657
+	/usr/local/go/src/net/http/transport.go:1945 +0x21f8
+
+goroutine 6167 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 6165
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16583 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0003abd48?, 0xbc?, 0xc0003abd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13450
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16644 [runnable]:
+sync.runtime_SemacquireRWMutexR(0xc000389910?, 0x1?, 0xc0001c0de8?)
+	/usr/local/go/src/runtime/sema.go:100 +0x28
+sync.(*RWMutex).RLock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:74 +0x5c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:469 +0xa4
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13476
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16593 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0003afd48?, 0xbc?, 0xc0003afd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13479
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 13459 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.(*TestCluster).Start.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:174
+created by github.com/hugovillarreal/conflux/test/integration.(*TestCluster).Start in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:169 +0x23c
+
+goroutine 16629 [select]:
+net/http.(*persistConn).writeLoop(0xc000200000)
+	/usr/local/go/src/net/http/transport.go:2590 +0x120
+created by net/http.(*Transport).dialConn in goroutine 16626
+	/usr/local/go/src/net/http/transport.go:1945 +0x21f8
+
+goroutine 16572 [runnable]:
+sync/atomic.(*Bool).Store(0xc0003e0114, 0x0)
+	/usr/local/go/src/sync/atomic/type.go:20 +0x68
+net/http.(*response).disableWriteContinue(0xc0003e00e0)
+	/usr/local/go/src/net/http/server.go:573 +0x48
+net/http.(*response).WriteHeader(0xc0003e00e0, 0xc8)
+	/usr/local/go/src/net/http/server.go:1209 +0x8c
+net/http.(*response).write(0xc0003e00e0, 0x1a, {0xc000334200, 0x1a, 0x80}, {0x0, 0x0})
+	/usr/local/go/src/net/http/server.go:1688 +0x21c
+net/http.(*response).Write(0xc0003e00e0, {0xc000334200, 0x1a, 0x80})
+	/usr/local/go/src/net/http/server.go:1665 +0x50
+encoding/json.(*Encoder).Encode(0xc000637890, {0x1029d8d80, 0xc000390290})
+	/usr/local/go/src/encoding/json/stream.go:231 +0x2ec
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).handleAppendEntriesHTTP(0xc000596140, {0x102a2bdc8, 0xc0003e00e0}, 0xc00074bcc0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:95 +0x3ac
+net/http.HandlerFunc.ServeHTTP(0xc0002972a0, {0x102a2bdc8, 0xc0003e00e0}, 0xc00074bcc0)
+	/usr/local/go/src/net/http/server.go:2294 +0x4c
+net/http.(*ServeMux).ServeHTTP(0xc000158cc0, {0x102a2bdc8, 0xc0003e00e0}, 0xc00074bcc0)
+	/usr/local/go/src/net/http/server.go:2822 +0x1c4
+net/http.serverHandler.ServeHTTP({0x102a2a8f8?}, {0x102a2bdc8, 0xc0003e00e0}, 0xc00074bcc0)
+	/usr/local/go/src/net/http/server.go:3301 +0x29c
+net/http.(*conn).serve(0xc000170ab0, {0x102a2c028, 0xc000196090})
+	/usr/local/go/src/net/http/server.go:2102 +0xeb8
+created by net/http.(*Server).Serve in goroutine 13460
+	/usr/local/go/src/net/http/server.go:3454 +0x678
+
+goroutine 16634 [IO wait]:
+internal/poll.runtime_pollWait(0x14d334b80, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00017e720, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00017e700, {0xc000244000, 0x1000, 0x1000})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00017e700, {0xc000244000, 0x1000, 0x1000})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc00037c0a0, {0xc000244000, 0x1000, 0x1000})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*persistConn).Read(0xc0006897a0, {0xc000244000, 0x1000, 0x1000})
+	/usr/local/go/src/net/http/transport.go:2122 +0xc4
+bufio.(*Reader).fill(0xc0001815c0)
+	/usr/local/go/src/bufio/bufio.go:113 +0x228
+bufio.(*Reader).Peek(0xc0001815c0, 0x1)
+	/usr/local/go/src/bufio/bufio.go:152 +0xb0
+net/http.(*persistConn).readLoop(0xc0006897a0)
+	/usr/local/go/src/net/http/transport.go:2275 +0x258
+created by net/http.(*Transport).dialConn in goroutine 16523
+	/usr/local/go/src/net/http/transport.go:1944 +0x218c
+
+goroutine 16660 [select]:
+net/http.(*persistConn).writeLoop(0xc0004dfd40)
+	/usr/local/go/src/net/http/transport.go:2590 +0x120
+created by net/http.(*Transport).dialConn in goroutine 16506
+	/usr/local/go/src/net/http/transport.go:1945 +0x21f8
+
+goroutine 13446 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16628 [IO wait]:
+internal/poll.runtime_pollWait(0x14becaca8, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00038a020, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00038a000, {0xc000230000, 0x1000, 0x1000})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00038a000, {0xc000230000, 0x1000, 0x1000})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc00037c050, {0xc000230000, 0x1000, 0x1000})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*persistConn).Read(0xc000200000, {0xc000230000, 0x1000, 0x1000})
+	/usr/local/go/src/net/http/transport.go:2122 +0xc4
+bufio.(*Reader).fill(0xc000181380)
+	/usr/local/go/src/bufio/bufio.go:113 +0x228
+bufio.(*Reader).Peek(0xc000181380, 0x1)
+	/usr/local/go/src/bufio/bufio.go:152 +0xb0
+net/http.(*persistConn).readLoop(0xc000200000)
+	/usr/local/go/src/net/http/transport.go:2275 +0x258
+created by net/http.(*Transport).dialConn in goroutine 16626
+	/usr/local/go/src/net/http/transport.go:1944 +0x218c
+
+goroutine 16641 [IO wait]:
+internal/poll.runtime_pollWait(0x14becaed8, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc0002dc020, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc0002dc000, {0xc000361000, 0x1000, 0x1000})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc0002dc000, {0xc000361000, 0x1000, 0x1000})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000122170, {0xc000361000, 0x1000, 0x1000})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*persistConn).Read(0xc0004de6c0, {0xc000361000, 0x1000, 0x1000})
+	/usr/local/go/src/net/http/transport.go:2122 +0xc4
+bufio.(*Reader).fill(0xc00051c7e0)
+	/usr/local/go/src/bufio/bufio.go:113 +0x228
+bufio.(*Reader).Peek(0xc00051c7e0, 0x1)
+	/usr/local/go/src/bufio/bufio.go:152 +0xb0
+net/http.(*persistConn).readLoop(0xc0004de6c0)
+	/usr/local/go/src/net/http/transport.go:2275 +0x258
+created by net/http.(*Transport).dialConn in goroutine 16500
+	/usr/local/go/src/net/http/transport.go:1944 +0x218c
+
+goroutine 16560 [IO wait]:
+internal/poll.runtime_pollWait(0x14d3342c0, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00009c1a0, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00009c180, {0xc0004972a1, 0x1, 0x1})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00009c180, {0xc0004972a1, 0x1, 0x1})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000316058, {0xc0004972a1, 0x1, 0x1})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*connReader).backgroundRead(0xc000497290)
+	/usr/local/go/src/net/http/server.go:690 +0x74
+created by net/http.(*connReader).startBackgroundRead in goroutine 16559
+	/usr/local/go/src/net/http/server.go:686 +0x15c
+
+goroutine 16537 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0004efd48?, 0xbc?, 0xc0004efd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13183
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16662 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0004514e8?, 0xbc?, 0xc000451518?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389cc0)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389cc0)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389cc0)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389cc0)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).AppendEntries(0xc000389cc0, 0xc0004807d0, 0xc0004517b0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/rpc.go:68 +0x74
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).handleAppendEntriesHTTP(0xc000389cc0, {0x102a2bdc8, 0xc0001b02a0}, 0xc00039d680)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:92 +0x1f4
+net/http.HandlerFunc.ServeHTTP(0xc000297250, {0x102a2bdc8, 0xc0001b02a0}, 0xc00039d680)
+	/usr/local/go/src/net/http/server.go:2294 +0x4c
+net/http.(*ServeMux).ServeHTTP(0xc000158b40, {0x102a2bdc8, 0xc0001b02a0}, 0xc00039d680)
+	/usr/local/go/src/net/http/server.go:2822 +0x1c4
+net/http.serverHandler.ServeHTTP({0x102a2a8f8?}, {0x102a2bdc8, 0xc0001b02a0}, 0xc00039d680)
+	/usr/local/go/src/net/http/server.go:3301 +0x29c
+net/http.(*conn).serve(0xc000438990, {0x102a2c028, 0xc0004abb00})
+	/usr/local/go/src/net/http/server.go:2102 +0xeb8
+created by net/http.(*Server).Serve in goroutine 13456
+	/usr/local/go/src/net/http/server.go:3454 +0x678
+
+goroutine 16661 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0006574e8?, 0xbc?, 0xc000657518?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389cc0)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389cc0)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389cc0)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389cc0)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).AppendEntries(0xc000389cc0, 0xc00031e230, 0xc0006577b0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/rpc.go:68 +0x74
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).handleAppendEntriesHTTP(0xc000389cc0, {0x102a2bdc8, 0xc0003861c0}, 0xc0003a8140)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:92 +0x1f4
+net/http.HandlerFunc.ServeHTTP(0xc000297250, {0x102a2bdc8, 0xc0003861c0}, 0xc0003a8140)
+	/usr/local/go/src/net/http/server.go:2294 +0x4c
+net/http.(*ServeMux).ServeHTTP(0xc000158b40, {0x102a2bdc8, 0xc0003861c0}, 0xc0003a8140)
+	/usr/local/go/src/net/http/server.go:2822 +0x1c4
+net/http.serverHandler.ServeHTTP({0x102a2a8f8?}, {0x102a2bdc8, 0xc0003861c0}, 0xc0003a8140)
+	/usr/local/go/src/net/http/server.go:3301 +0x29c
+net/http.(*conn).serve(0xc000438900, {0x102a2c028, 0xc0004abb00})
+	/usr/local/go/src/net/http/server.go:2102 +0xeb8
+created by net/http.(*Server).Serve in goroutine 13456
+	/usr/local/go/src/net/http/server.go:3454 +0x678
+
+goroutine 13451 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.(*TestCluster).Start.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:174
+created by github.com/hugovillarreal/conflux/test/integration.(*TestCluster).Start in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:169 +0x23c
+
+goroutine 16612 [IO wait]:
+internal/poll.runtime_pollWait(0x14d334838, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00009c3a0, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00009c380, {0xc0003e6000, 0x1000, 0x1000})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00009c380, {0xc0003e6000, 0x1000, 0x1000})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc0003b2020, {0xc0003e6000, 0x1000, 0x1000})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*persistConn).Read(0xc0004e3680, {0xc0003e6000, 0x1000, 0x1000})
+	/usr/local/go/src/net/http/transport.go:2122 +0xc4
+bufio.(*Reader).fill(0xc0002949c0)
+	/usr/local/go/src/bufio/bufio.go:113 +0x228
+bufio.(*Reader).Peek(0xc0002949c0, 0x1)
+	/usr/local/go/src/bufio/bufio.go:152 +0xb0
+net/http.(*persistConn).readLoop(0xc0004e3680)
+	/usr/local/go/src/net/http/transport.go:2275 +0x258
+created by net/http.(*Transport).dialConn in goroutine 16657
+	/usr/local/go/src/net/http/transport.go:1944 +0x218c
+
+goroutine 13473 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0003a1c18?, 0xbc?, 0xc0003a1c48?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc000404570})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:450 +0x6ec
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x2)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 5421 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5420
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 7798 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 7797
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16584 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc00013bd48?, 0xbc?, 0xc00013bd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13477
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 5270 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5269
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 11837 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 11836
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16575 [IO wait]:
+internal/poll.runtime_pollWait(0x104072508, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00032a4a0, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00032a480, {0xc000404a91, 0x1, 0x1})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00032a480, {0xc000404a91, 0x1, 0x1})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000064058, {0xc000404a91, 0x1, 0x1})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*connReader).backgroundRead(0xc000404a80)
+	/usr/local/go/src/net/http/server.go:690 +0x74
+created by net/http.(*connReader).startBackgroundRead in goroutine 16574
+	/usr/local/go/src/net/http/server.go:686 +0x15c
+
+goroutine 7800 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 7797
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 5271 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5269
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 5288 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5287
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 5544 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5541
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16504 [select]:
+net/http.(*persistConn).writeLoop(0xc0004dec60)
+	/usr/local/go/src/net/http/transport.go:2590 +0x120
+created by net/http.(*Transport).dialConn in goroutine 16499
+	/usr/local/go/src/net/http/transport.go:1945 +0x21f8
+
+goroutine 7799 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 7797
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16527 [IO wait]:
+internal/poll.runtime_pollWait(0x104071a18, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc0002dc6a0, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc0002dc680, {0xc0002ff601, 0x1, 0x1})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc0002dc680, {0xc0002ff601, 0x1, 0x1})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc0002ca0a8, {0xc0002ff601, 0x1, 0x1})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*connReader).backgroundRead(0xc0002ff5f0)
+	/usr/local/go/src/net/http/server.go:690 +0x74
+created by net/http.(*connReader).startBackgroundRead in goroutine 16508
+	/usr/local/go/src/net/http/server.go:686 +0x15c
+
+goroutine 13477 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0001d9c18?, 0xbc?, 0xc0001d9c48?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc0000a2660})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:417 +0x44
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x6)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 6166 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 6165
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16610 [IO wait]:
+internal/poll.runtime_pollWait(0x104071e78, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00009c120, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00009c100, {0xc000382000, 0x1000, 0x1000})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00009c100, {0xc000382000, 0x1000, 0x1000})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc0003b2018, {0xc000382000, 0x1000, 0x1000})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*persistConn).Read(0xc000096240, {0xc000382000, 0x1000, 0x1000})
+	/usr/local/go/src/net/http/transport.go:2122 +0xc4
+bufio.(*Reader).fill(0xc0002946c0)
+	/usr/local/go/src/bufio/bufio.go:113 +0x228
+bufio.(*Reader).Peek(0xc0002946c0, 0x1)
+	/usr/local/go/src/bufio/bufio.go:152 +0xb0
+net/http.(*persistConn).readLoop(0xc000096240)
+	/usr/local/go/src/net/http/transport.go:2275 +0x258
+created by net/http.(*Transport).dialConn in goroutine 16557
+	/usr/local/go/src/net/http/transport.go:1944 +0x218c
+
+goroutine 16503 [IO wait]:
+internal/poll.runtime_pollWait(0x14becaa78, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc0002dc120, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc0002dc100, {0xc00027c000, 0x1000, 0x1000})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc0002dc100, {0xc00027c000, 0x1000, 0x1000})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc0002ca068, {0xc00027c000, 0x1000, 0x1000})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*persistConn).Read(0xc0004dec60, {0xc00027c000, 0x1000, 0x1000})
+	/usr/local/go/src/net/http/transport.go:2122 +0xc4
+bufio.(*Reader).fill(0xc0003c6120)
+	/usr/local/go/src/bufio/bufio.go:113 +0x228
+bufio.(*Reader).Peek(0xc0003c6120, 0x1)
+	/usr/local/go/src/bufio/bufio.go:152 +0xb0
+net/http.(*persistConn).readLoop(0xc0004dec60)
+	/usr/local/go/src/net/http/transport.go:2275 +0x258
+created by net/http.(*Transport).dialConn in goroutine 16499
+	/usr/local/go/src/net/http/transport.go:1944 +0x218c
+
+goroutine 16525 [IO wait]:
+internal/poll.runtime_pollWait(0x104071c48, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00038a3a0, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00038a380, {0xc0004b6000, 0x1000, 0x1000})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00038a380, {0xc0004b6000, 0x1000, 0x1000})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000202030, {0xc0004b6000, 0x1000, 0x1000})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*persistConn).Read(0xc000200d80, {0xc0004b6000, 0x1000, 0x1000})
+	/usr/local/go/src/net/http/transport.go:2122 +0xc4
+bufio.(*Reader).fill(0xc000580360)
+	/usr/local/go/src/bufio/bufio.go:113 +0x228
+bufio.(*Reader).Peek(0xc000580360, 0x1)
+	/usr/local/go/src/bufio/bufio.go:152 +0xb0
+net/http.(*persistConn).readLoop(0xc000200d80)
+	/usr/local/go/src/net/http/transport.go:2275 +0x258
+created by net/http.(*Transport).dialConn in goroutine 16632
+	/usr/local/go/src/net/http/transport.go:1944 +0x218c
+
+goroutine 5289 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5287
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13184 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc000141c18?, 0xbc?, 0xc000141c48?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc000511260})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:450 +0x6ec
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x1)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 16582 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc000551d48?, 0xbc?, 0xc000551d78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13450
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 13449 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0000fdc38?, 0xbc?, 0xc0000fdc68?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).startApplyLoop.func1()
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/apply.go:22 +0xc0
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).startApplyLoop in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/apply.go:13 +0x9c
+
+goroutine 16635 [select]:
+net/http.(*persistConn).writeLoop(0xc0006897a0)
+	/usr/local/go/src/net/http/transport.go:2590 +0x120
+created by net/http.(*Transport).dialConn in goroutine 16523
+	/usr/local/go/src/net/http/transport.go:1945 +0x21f8
+
+goroutine 5441 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5374
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16585 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc00054dd48?, 0xbc?, 0xc00054dd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13477
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16559 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0000dd4e8?, 0xbc?, 0xc0000dd518?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000596140)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000596140)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000596140)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000596140)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).AppendEntries(0xc000596140, 0xc0004804b0, 0xc0000dd7b0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/rpc.go:68 +0x74
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).handleAppendEntriesHTTP(0xc000596140, {0x102a2bdc8, 0xc0001b0000}, 0xc00039cf00)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:92 +0x1f4
+net/http.HandlerFunc.ServeHTTP(0xc0002972a0, {0x102a2bdc8, 0xc0001b0000}, 0xc00039cf00)
+	/usr/local/go/src/net/http/server.go:2294 +0x4c
+net/http.(*ServeMux).ServeHTTP(0xc000158cc0, {0x102a2bdc8, 0xc0001b0000}, 0xc00039cf00)
+	/usr/local/go/src/net/http/server.go:2822 +0x1c4
+net/http.serverHandler.ServeHTTP({0x102a2a8f8?}, {0x102a2bdc8, 0xc0001b0000}, 0xc00039cf00)
+	/usr/local/go/src/net/http/server.go:3301 +0x29c
+net/http.(*conn).serve(0xc000438630, {0x102a2c028, 0xc000196090})
+	/usr/local/go/src/net/http/server.go:2102 +0xeb8
+created by net/http.(*Server).Serve in goroutine 13460
+	/usr/local/go/src/net/http/server.go:3454 +0x678
+
+goroutine 5376 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5374
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16446 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc00054bd48?, 0xbc?, 0xc00054bd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13478
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16445 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0002afd48?, 0xbc?, 0xc0002afd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13478
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16614 [IO wait]:
+internal/poll.runtime_pollWait(0x14becadc0, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00009c420, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc00009c400, {0xc000384641, 0x1, 0x1})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc00009c400, {0xc000384641, 0x1, 0x1})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000316078, {0xc000384641, 0x1, 0x1})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*connReader).backgroundRead(0xc000384630)
+	/usr/local/go/src/net/http/server.go:690 +0x74
+created by net/http.(*connReader).startBackgroundRead in goroutine 16661
+	/usr/local/go/src/net/http/server.go:686 +0x15c
+
+goroutine 6169 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 6165
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13460 [IO wait]:
+internal/poll.runtime_pollWait(0x1040722d8, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00032a920, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Accept(0xc00032a900)
+	/usr/local/go/src/internal/poll/fd_unix.go:620 +0x3a8
+net.(*netFD).accept(0xc00032a900)
+	/usr/local/go/src/net/fd_unix.go:172 +0x38
+net.(*TCPListener).accept(0xc00029d040)
+	/usr/local/go/src/net/tcpsock_posix.go:159 +0x40
+net.(*TCPListener).Accept(0xc00029d040)
+	/usr/local/go/src/net/tcpsock.go:380 +0x68
+net/http.(*Server).Serve(0xc000366800, {0x102a2bb58, 0xc00029d040})
+	/usr/local/go/src/net/http/server.go:3424 +0x488
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).StartTransport.func2()
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:37 +0x144
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).StartTransport in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:35 +0x3c4
+
+goroutine 5378 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5327
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16630 [select]:
+net/http.(*persistConn).roundTrip(0xc0004e3680, 0xc000480640)
+	/usr/local/go/src/net/http/transport.go:2826 +0x9b0
+net/http.(*Transport).roundTrip(0xc0002c84e0, 0xc00039d400)
+	/usr/local/go/src/net/http/transport.go:696 +0xf28
+net/http.(*Transport).RoundTrip(0xc0002c84e0, 0xc00039d400)
+	/usr/local/go/src/net/http/roundtrip.go:30 +0x34
+net/http.send(0xc00039d2c0, {0x102a27f60, 0xc0002c84e0}, {0x0?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:259 +0x670
+net/http.(*Client).send(0xc00061a630, 0xc00039d2c0, {0x0?, 0x14?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:180 +0x108
+net/http.(*Client).do(0xc00061a630, 0xc00039d2c0)
+	/usr/local/go/src/net/http/client.go:728 +0xdd8
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:587
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendAppendEntries(0xc000389900?, {0xc00000f0a1, 0xf}, 0xc0004805a0, 0xc00040d7e0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:161 +0x43c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:497 +0x370
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13474
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 5377 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5327
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16642 [select]:
+net/http.(*persistConn).writeLoop(0xc0004de6c0)
+	/usr/local/go/src/net/http/transport.go:2590 +0x120
+created by net/http.(*Transport).dialConn in goroutine 16500
+	/usr/local/go/src/net/http/transport.go:1945 +0x21f8
+
+goroutine 5422 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5420
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 5328 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 5327
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13454 [select]:
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).runFollower(0xc000389cc0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:176 +0x14c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).run(0xc000389cc0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:160 +0x148
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).Start in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:140 +0x218
+
+goroutine 16487 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0002add48?, 0xbc?, 0xc0002add78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13474
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 13448 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13455 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.(*TestCluster).Start.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:174
+created by github.com/hugovillarreal/conflux/test/integration.(*TestCluster).Start in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:169 +0x23c
+
+goroutine 16659 [IO wait]:
+internal/poll.runtime_pollWait(0x14d334a68, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc0002dc620, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc0002dc600, {0xc0000e8000, 0x1000, 0x1000})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc0002dc600, {0xc0000e8000, 0x1000, 0x1000})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc000316070, {0xc0000e8000, 0x1000, 0x1000})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*persistConn).Read(0xc0004dfd40, {0xc0000e8000, 0x1000, 0x1000})
+	/usr/local/go/src/net/http/transport.go:2122 +0xc4
+bufio.(*Reader).fill(0xc0004d06c0)
+	/usr/local/go/src/bufio/bufio.go:113 +0x228
+bufio.(*Reader).Peek(0xc0004d06c0, 0x1)
+	/usr/local/go/src/bufio/bufio.go:152 +0xb0
+net/http.(*persistConn).readLoop(0xc0004dfd40)
+	/usr/local/go/src/net/http/transport.go:2275 +0x258
+created by net/http.(*Transport).dialConn in goroutine 16506
+	/usr/local/go/src/net/http/transport.go:1944 +0x218c
+
+goroutine 11838 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 11836
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 13458 [select]:
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).runFollower(0xc000596140)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:176 +0x14c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).run(0xc000596140)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:160 +0x148
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).Start in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:140 +0x218
+
+goroutine 13479 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc000341c18?, 0xbc?, 0xc000341c48?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc000497aa0})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:417 +0x44
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x8)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 16510 [IO wait]:
+internal/poll.runtime_pollWait(0x14d334720, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc0002dc820, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Read(0xc0002dc800, {0xc0004051b1, 0x1, 0x1})
+	/usr/local/go/src/internal/poll/fd_unix.go:165 +0x320
+net.(*netFD).Read(0xc0002dc800, {0xc0004051b1, 0x1, 0x1})
+	/usr/local/go/src/net/fd_posix.go:55 +0x48
+net.(*conn).Read(0xc0002ca0b0, {0xc0004051b1, 0x1, 0x1})
+	/usr/local/go/src/net/net.go:194 +0x88
+net/http.(*connReader).backgroundRead(0xc0004051a0)
+	/usr/local/go/src/net/http/server.go:690 +0x74
+created by net/http.(*connReader).startBackgroundRead in goroutine 16509
+	/usr/local/go/src/net/http/server.go:686 +0x15c
+
+goroutine 16631 [select]:
+net/http.(*persistConn).roundTrip(0xc0004dfd40, 0xc00001e500)
+	/usr/local/go/src/net/http/transport.go:2826 +0x9b0
+net/http.(*Transport).roundTrip(0xc0004b89c0, 0xc0002a4140)
+	/usr/local/go/src/net/http/transport.go:696 +0xf28
+net/http.(*Transport).RoundTrip(0xc0004b89c0, 0xc0002a4140)
+	/usr/local/go/src/net/http/roundtrip.go:30 +0x34
+net/http.send(0xc0002a4000, {0x102a27f60, 0xc0004b89c0}, {0x0?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:259 +0x670
+net/http.(*Client).send(0xc000404ea0, 0xc0002a4000, {0x0?, 0x10245a0b0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:180 +0x108
+net/http.(*Client).do(0xc000404ea0, 0xc0002a4000)
+	/usr/local/go/src/net/http/client.go:728 +0xdd8
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:587
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendAppendEntries(0xc000389900?, {0xc00000f0c1, 0xf}, 0xc00001e460, 0xc0001cea20)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:161 +0x43c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:497 +0x370
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13474
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 13456 [IO wait]:
+internal/poll.runtime_pollWait(0x1040723f0, 0x72)
+	/usr/local/go/src/runtime/netpoll.go:351 +0xa0
+internal/poll.(*pollDesc).wait(0xc00032a8a0, 0x72, 0x0)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:84 +0xb8
+internal/poll.(*pollDesc).waitRead(...)
+	/usr/local/go/src/internal/poll/fd_poll_runtime.go:89
+internal/poll.(*FD).Accept(0xc00032a880)
+	/usr/local/go/src/internal/poll/fd_unix.go:620 +0x3a8
+net.(*netFD).accept(0xc00032a880)
+	/usr/local/go/src/net/fd_unix.go:172 +0x38
+net.(*TCPListener).accept(0xc00029d000)
+	/usr/local/go/src/net/tcpsock_posix.go:159 +0x40
+net.(*TCPListener).Accept(0xc00029d000)
+	/usr/local/go/src/net/tcpsock.go:380 +0x68
+net/http.(*Server).Serve(0xc000366700, {0x102a2bb58, 0xc00029d000})
+	/usr/local/go/src/net/http/server.go:3424 +0x488
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).StartTransport.func2()
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:37 +0x144
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).StartTransport in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:35 +0x3c4
+
+goroutine 13183 [runnable]:
+internal/sync.runtime_SemacquireMutex(0xc000223c18?, 0xbc?, 0xc000223c48?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).Propose(0xc000389900, {0x1029a6d80, 0xc0000a2a50})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:450 +0x6ec
+github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations.func1(0x0)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:258 +0x330
+created by github.com/hugovillarreal/conflux/test/integration.TestConcurrentOperations in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/network_test.go:243 +0x1e4
+
+goroutine 13450 [select]:
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).runLeader(0xc000389900)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:374 +0x2b4
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).run(0xc000389900)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:164 +0x114
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).Start in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:140 +0x218
+
+goroutine 13447 [chan receive]:
+github.com/hugovillarreal/conflux/test/integration.NewTestCluster.func1(...)
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:110
+created by github.com/hugovillarreal/conflux/test/integration.NewTestCluster in goroutine 13445
+	/Users/hugovillarreal/Documents/Conflux/test/integration/helpers.go:105 +0xc0c
+
+goroutine 16574 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc0004794e8?, 0xbc?, 0xc000479518?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389cc0)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389cc0)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389cc0)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389cc0)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).AppendEntries(0xc000389cc0, 0xc000298370, 0xc0004797b0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/rpc.go:68 +0x74
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).handleAppendEntriesHTTP(0xc000389cc0, {0x102a2bdc8, 0xc0005121c0}, 0xc00057db80)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:92 +0x1f4
+net/http.HandlerFunc.ServeHTTP(0xc000297250, {0x102a2bdc8, 0xc0005121c0}, 0xc00057db80)
+	/usr/local/go/src/net/http/server.go:2294 +0x4c
+net/http.(*ServeMux).ServeHTTP(0xc000158b40, {0x102a2bdc8, 0xc0005121c0}, 0xc00057db80)
+	/usr/local/go/src/net/http/server.go:2822 +0x1c4
+net/http.serverHandler.ServeHTTP({0x102a2a8f8?}, {0x102a2bdc8, 0xc0005121c0}, 0xc00057db80)
+	/usr/local/go/src/net/http/server.go:3301 +0x29c
+net/http.(*conn).serve(0xc000170bd0, {0x102a2c028, 0xc0004abb00})
+	/usr/local/go/src/net/http/server.go:2102 +0xeb8
+created by net/http.(*Server).Serve in goroutine 13456
+	/usr/local/go/src/net/http/server.go:3454 +0x678
+
+goroutine 16573 [runnable]:
+internal/poll.(*FD).Fsync(0xc000580d80)
+	/usr/local/go/src/internal/poll/fd_fsync_darwin.go:21 +0x200
+os.(*File).Sync(0xc0000641d8)
+	/usr/local/go/src/os/file_posix.go:166 +0x74
+github.com/hugovillarreal/conflux/pkg/wal.(*WAL).Append(0xc00021fdd0, {0xb8, 0x1, {0x1029ba340, 0xc0002febd0}})
+	/Users/hugovillarreal/Documents/Conflux/pkg/wal/wal.go:60 +0x174
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).persistLogEntry(0xc000389cc0, {0x102582dd8?, 0xc000263618?, {0x1029ba340?, 0xc0002febd0?}})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/persistence.go:107 +0x80
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).AppendEntries(0xc000389cc0, 0xc0003922d0, 0xc0006437b0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/rpc.go:133 +0xb18
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).handleAppendEntriesHTTP(0xc000389cc0, {0x102a2bdc8, 0xc0006f02a0}, 0xc00060e280)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:92 +0x1f4
+net/http.HandlerFunc.ServeHTTP(0xc000297250, {0x102a2bdc8, 0xc0006f02a0}, 0xc00060e280)
+	/usr/local/go/src/net/http/server.go:2294 +0x4c
+net/http.(*ServeMux).ServeHTTP(0xc000158b40, {0x102a2bdc8, 0xc0006f02a0}, 0xc00060e280)
+	/usr/local/go/src/net/http/server.go:2822 +0x1c4
+net/http.serverHandler.ServeHTTP({0x102a2a8f8?}, {0x102a2bdc8, 0xc0006f02a0}, 0xc00060e280)
+	/usr/local/go/src/net/http/server.go:3301 +0x29c
+net/http.(*conn).serve(0xc000170b40, {0x102a2c028, 0xc0004abb00})
+	/usr/local/go/src/net/http/server.go:2102 +0xeb8
+created by net/http.(*Server).Serve in goroutine 13456
+	/usr/local/go/src/net/http/server.go:3454 +0x678
+
+goroutine 16538 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc000631d48?, 0xbc?, 0xc000631d78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13183
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16431 [select]:
+net/http.(*persistConn).roundTrip(0xc0004dec60, 0xc00001e140)
+	/usr/local/go/src/net/http/transport.go:2826 +0x9b0
+net/http.(*Transport).roundTrip(0xc0004b8000, 0xc00057d540)
+	/usr/local/go/src/net/http/transport.go:696 +0xf28
+net/http.(*Transport).RoundTrip(0xc0004b8000, 0xc00057d540)
+	/usr/local/go/src/net/http/roundtrip.go:30 +0x34
+net/http.send(0xc00057d040, {0x102a27f60, 0xc0004b8000}, {0x0?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:259 +0x670
+net/http.(*Client).send(0xc000404180, 0xc00057d040, {0x0?, 0x14?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:180 +0x108
+net/http.(*Client).do(0xc000404180, 0xc00057d040)
+	/usr/local/go/src/net/http/client.go:728 +0xdd8
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:587
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendAppendEntries(0xc000389900?, {0xc00000f0c1, 0xf}, 0xc00001e0a0, 0xc0001ce050)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:161 +0x43c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:497 +0x370
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13184
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16544 [select]:
+net/http.(*persistConn).roundTrip(0xc000200d80, 0xc0001464b0)
+	/usr/local/go/src/net/http/transport.go:2826 +0x9b0
+net/http.(*Transport).roundTrip(0xc0001e8820, 0xc0005968c0)
+	/usr/local/go/src/net/http/transport.go:696 +0xf28
+net/http.(*Transport).RoundTrip(0xc0001e8820, 0xc0005968c0)
+	/usr/local/go/src/net/http/roundtrip.go:30 +0x34
+net/http.send(0xc000596780, {0x102a27f60, 0xc0001e8820}, {0x0?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:259 +0x670
+net/http.(*Client).send(0xc0004ab830, 0xc000596780, {0x0?, 0x14?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:180 +0x108
+net/http.(*Client).do(0xc0004ab830, 0xc000596780)
+	/usr/local/go/src/net/http/client.go:728 +0xdd8
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:587
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendAppendEntries(0xc000389900?, {0xc00000f0c1, 0xf}, 0xc000146410, 0xc000595ab0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:161 +0x43c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0c1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:497 +0x370
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13450
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16430 [select]:
+net/http.(*persistConn).roundTrip(0xc0004de6c0, 0xc00001e280)
+	/usr/local/go/src/net/http/transport.go:2826 +0x9b0
+net/http.(*Transport).roundTrip(0xc0004b8820, 0xc00057d900)
+	/usr/local/go/src/net/http/transport.go:696 +0xf28
+net/http.(*Transport).RoundTrip(0xc0004b8820, 0xc00057d900)
+	/usr/local/go/src/net/http/roundtrip.go:30 +0x34
+net/http.send(0xc00057d7c0, {0x102a27f60, 0xc0004b8820}, {0x0?, 0x0?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:259 +0x670
+net/http.(*Client).send(0xc0004043c0, 0xc00057d7c0, {0x0?, 0x14?, 0x102cdd360?})
+	/usr/local/go/src/net/http/client.go:180 +0x108
+net/http.(*Client).do(0xc0004043c0, 0xc00057d7c0)
+	/usr/local/go/src/net/http/client.go:728 +0xdd8
+net/http.(*Client).Do(...)
+	/usr/local/go/src/net/http/client.go:587
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendAppendEntries(0xc000389900?, {0xc00000f0a1, 0xf}, 0xc00001e1e0, 0xc0001ce0d0)
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/transport.go:161 +0x43c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:497 +0x370
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13184
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16664 [runnable]:
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.gowrap1()
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13478
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16643 [runnable]:
+sync.runtime_SemacquireRWMutexR(0xc000389910?, 0x1?, 0xc000460de8?)
+	/usr/local/go/src/runtime/sema.go:100 +0x28
+sync.(*RWMutex).RLock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:74 +0x5c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:469 +0xa4
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13476
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+
+goroutine 16351 [sync.Mutex.Lock]:
+internal/sync.runtime_SemacquireMutex(0xc00033fd48?, 0xbc?, 0xc00033fd78?)
+	/usr/local/go/src/runtime/sema.go:95 +0x28
+internal/sync.(*Mutex).lockSlow(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:149 +0x1e4
+internal/sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/internal/sync/mutex.go:70 +0x5c
+sync.(*Mutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/mutex.go:46 +0x30
+sync.(*RWMutex).Lock(0xc000389900)
+	/usr/local/go/src/sync/rwmutex.go:150 +0x3c
+github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats.func1({0xc00000f0a1, 0xf})
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:506 +0x37c
+created by github.com/hugovillarreal/conflux/pkg/raft.(*Node).sendHeartbeats in goroutine 13476
+	/Users/hugovillarreal/Documents/Conflux/pkg/raft/node.go:466 +0x278
+FAIL	github.com/hugovillarreal/conflux/test/integration	56.138s
+FAIL

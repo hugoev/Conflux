@@ -47,9 +47,8 @@ func (n *Node) Stop() error {
 		}
 	}
 
-	// Give goroutines time to exit (especially apply loop)
-	// Use a longer timeout to ensure apply loop finishes
-	time.Sleep(500 * time.Millisecond)
+	// Give goroutines time to exit
+	n.wg.Wait()
 
 	// Close apply channel only after goroutines have exited
 	// Use applyChMu to ensure no one is accessing it

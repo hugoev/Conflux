@@ -7,8 +7,11 @@ import (
 )
 
 // startApplyLoop runs a goroutine that applies committed entries to the state machine
+// startApplyLoop runs a goroutine that applies committed entries to the state machine
 func (n *Node) startApplyLoop() {
+	n.wg.Add(1)
 	go func() {
+		defer n.wg.Done()
 		for {
 			select {
 			case <-n.stopCh:

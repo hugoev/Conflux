@@ -164,8 +164,8 @@ func TestSplitBrainPrevention(t *testing.T) {
 	t.Logf("Stopped leader node-%d and follower node-%d", leaderIdx, followerIdx)
 
 	// Wait for nodes to fully stop (HTTP servers to shut down, RPCs to be rejected)
-	// This ensures stopped nodes cannot grant votes even if requests are in flight
-	time.Sleep(3 * time.Second)
+	// HTTP server shutdown is fast (1s timeout), so 2 seconds should be enough
+	time.Sleep(2 * time.Second)
 
 	// Remaining node should NOT be leader (no majority)
 	leaderCount := cluster.CountLeaders()
@@ -178,39 +178,38 @@ func TestSplitBrainPrevention(t *testing.T) {
 		t.Fatalf("Failed to restart node-%d: %v", followerIdx, err)
 	}
 
-	// Now we have 2 nodes, but still no majority in 3-node cluster
-	// Wait for state to stabilize - give more time for election attempts to fail
-	time.Sleep(5 * time.Second)
+	// Now we have 2 nodes out of 3 total
+	// In Raft, 2/3 IS a majority (need 2 votes out of 3 total nodes)
+	// So these 2 nodes CAN and SHOULD elect a leader
+	// Wait for state to stabilize - election timeout is 150-300ms
+	time.Sleep(2 * time.Second)
 
-	// Still should not have leader (2/3 is not majority)
-	// Check multiple times to ensure no leader is elected
-	for i := 0; i < 5; i++ {
-		leaderCount = cluster.CountLeaders()
-		if leaderCount > 0 {
-			// Wait a bit more and check again - might be transient
-			time.Sleep(1 * time.Second)
-			leaderCount = cluster.CountLeaders()
-			if leaderCount > 0 {
-				t.Errorf("Split brain: 2 nodes elected leader without majority (persistent)")
-				break
-			}
-		}
-		time.Sleep(500 * time.Millisecond)
+	// With 2 nodes running out of 3 total, we have a majority (2/3 = 66.7% > 50%)
+	// So a leader SHOULD be elected
+	// Wait for leader election
+	twoNodeLeaderIdx, err := cluster.WaitForLeader(15 * time.Second)
+	if err != nil {
+		t.Fatalf("Leader election with 2/3 majority failed: %v", err)
 	}
+	t.Logf("Leader elected with 2/3 majority: node-%d", twoNodeLeaderIdx)
 
-	// Restart the original leader to form majority
+	// Verify exactly one leader exists
+	AssertLeaderElected(t, cluster)
+
+	// Restart the original leader to form full cluster (3/3)
 	if err := cluster.RestartNode(leaderIdx); err != nil {
 		t.Fatalf("Failed to restart original leader: %v", err)
 	}
 
 	// Wait for nodes to reconnect and stabilize
 	// Restarted nodes need time to reconnect, receive heartbeats, and sync state
-	// Also need time for any election attempts to complete
-	time.Sleep(4 * time.Second)
+	// HTTP server starts fast, heartbeats are 50ms interval
+	time.Sleep(2 * time.Second)
 
-	// Now should have leader (3 nodes = majority)
-	// After full restart, nodes need more time to reconnect and elect a leader
-	newLeaderIdx, err := cluster.WaitForLeader(60 * time.Second)
+	// Now should have leader (3 nodes = full cluster)
+	// After restart, nodes need time to reconnect and elect a leader
+	// Election timeout is 150-300ms, so 30 seconds should be plenty
+	newLeaderIdx, err := cluster.WaitForLeader(30 * time.Second)
 	if err != nil {
 		t.Fatalf("Leader election after majority restored failed: %v", err)
 	}

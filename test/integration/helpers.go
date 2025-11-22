@@ -330,18 +330,25 @@ func (c *TestCluster) RestartNode(idx int) error {
 	}
 
 	// Wait longer to ensure cleanup and port release
-	time.Sleep(500 * time.Millisecond)
+	// This is critical - we need to ensure the HTTP server is fully stopped
+	// and the port is released before we try to bind again
+	time.Sleep(1 * time.Second)
 
 	// Reset apply channel (since Stop closed it)
 	node.ResetApplyCh()
 
 	// Reinitialize persistence (WAL, snapshot, recovery)
+	// This recovers the node's state from disk
 	if err := node.InitializePersistence(); err != nil {
 		return fmt.Errorf("failed to initialize persistence for restart: %w", err)
 	}
 
 	// Restart the node's main loops
+	// This starts the Raft state machine and apply loop
 	node.Start()
+
+	// Give the node a moment to start up before we start transport
+	time.Sleep(200 * time.Millisecond)
 
 	// Recreate apply goroutine for restarted node
 	store := c.Stores[idx]
@@ -410,7 +417,6 @@ func (c *TestCluster) WaitForCommitIndex(minIndex int, timeout time.Duration) er
 			}
 			if node == nil || node.GetCommitIndex() < minIndex {
 				allReached = false
-				c.mu.Unlock()
 				break
 			}
 		}

@@ -66,11 +66,13 @@ func TestPersistence_Restart(t *testing.T) {
 	}
 
 	// Wait for nodes to start up and reconnect
-	time.Sleep(2 * time.Second)
+	// HTTP servers start fast, election timeout is 150-300ms
+	time.Sleep(1 * time.Second)
 
 	// Wait for leader again (longer timeout after full restart)
 	// After a full shutdown, nodes need time to reconnect and elect a leader
-	newLeaderIdx, err := cluster.WaitForLeader(45 * time.Second)
+	// Election timeout is 150-300ms, so 30 seconds should be plenty
+	newLeaderIdx, err := cluster.WaitForLeader(30 * time.Second)
 	if err != nil {
 		t.Fatalf("Leader election after restart failed: %v", err)
 	}
@@ -191,10 +193,10 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 
 	// Wait for follower to reconnect and catch up
 	// Restarted follower needs to:
-	// 1. Recover state from WAL/snapshots
-	// 2. Reconnect to leader
-	// 3. Receive AppendEntries and catch up
-	time.Sleep(3 * time.Second)
+	// 1. Recover state from WAL/snapshots (fast, in-memory)
+	// 2. Reconnect to leader (fast, HTTP server starts quickly)
+	// 3. Receive AppendEntries and catch up (heartbeat interval is 50ms)
+	time.Sleep(2 * time.Second)
 
 	// Follower should catch up - check in batches with retries
 	store := cluster.Stores[followerIdx]

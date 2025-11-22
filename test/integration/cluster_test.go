@@ -123,12 +123,12 @@ func TestLeaderFailover(t *testing.T) {
 		cluster.StopNode(leaderIdx)
 
 		// Wait for leader to stop and new leader to be elected
-		// Give more time for the stopped leader to fully shut down and HTTP server to close
-		// This ensures the old leader cannot grant votes or accept entries
-		time.Sleep(4 * time.Second)
+		// HTTP server shutdown is fast (1s timeout), election timeout is 150-300ms
+		// So 2 seconds should be enough for shutdown + election
+		time.Sleep(2 * time.Second)
 		newLeaderIdx, err := cluster.WaitForLeader(30 * time.Second)
 		if err != nil {
-			t.Fatalf("Failover %d failed: %v", i+1, err)
+			t.Fatalf("Failover %d failed: no leader elected within timeout: %v", i+1, err)
 		}
 
 		// Verify new leader is different
@@ -141,21 +141,27 @@ func TestLeaderFailover(t *testing.T) {
 			t.Fatalf("Failed to restart node-%d: %v", leaderIdx, err)
 		}
 
-		// Give more time for node to rejoin and stabilize
-		// Restarted node needs to reconnect, receive heartbeats, and sync state
+		// Give time for node to rejoin and stabilize
+		// Restarted node needs to:
+		// 1. Recover state from WAL/snapshots (fast, in-memory)
+		// 2. Start HTTP server and reconnect (fast, ~200ms)
+		// 3. Receive heartbeats from current leader (50ms interval)
+		// 4. Sync state and catch up on log entries
 		// Leader needs to discover the restarted peer and adjust nextIndex
-		// Also wait for any potential election attempts to settle
-		time.Sleep(4 * time.Second)
+		time.Sleep(2 * time.Second)
 
-		// Verify exactly one leader
+		// Verify exactly one leader exists
 		AssertLeaderElected(t, cluster)
 
 		// Update leaderIdx for next iteration
 		// Note: After restarting, the old leader might become leader again if it has more up-to-date log
 		// So we need to get the current leader, not assume it's newLeaderIdx
-		currentLeader, err := cluster.WaitForLeader(10 * time.Second)
+		// Wait a bit to ensure the cluster has stabilized after restart
+		// The restarted node needs time to catch up and the cluster needs to stabilize
+		time.Sleep(1 * time.Second)
+		currentLeader, err := cluster.WaitForLeader(15 * time.Second)
 		if err != nil {
-			t.Fatalf("Failed to get leader after restart: %v", err)
+			t.Fatalf("Failed to get leader after restart in iteration %d: %v", i+1, err)
 		}
 		leaderIdx = currentLeader
 	}
@@ -291,35 +297,57 @@ func TestMajorityNodeFailure(t *testing.T) {
 
 	// Wait for nodes to fully stop (HTTP servers to shut down, RPCs to be rejected)
 	// This is critical - we need to ensure stopped nodes cannot grant votes
-	// Wait longer to ensure all in-flight RPCs are rejected and HTTP servers are closed
-	// Also wait for any ongoing elections to complete (they should fail without majority)
-	time.Sleep(8 * time.Second) // Wait for HTTP servers to fully shut down and elections to fail
+	// Reduced wait time - HTTP server shutdown is fast (1s timeout)
+	time.Sleep(3 * time.Second) // Wait for HTTP servers to fully shut down
 
 	// Wait for election timeout and state updates
 	// Give enough time for any election attempts to complete and fail
 	// Nodes need time to realize they can't get majority votes
 	// With only 2 nodes remaining, they need 3 votes (majority of 5), so elections should fail
-	// Also wait for any transient leaders to step down or realize they can't commit
-	time.Sleep(8 * time.Second) // Wait for election attempts to fail and leaders to step down
+	// Election timeout is 150-300ms, so 2-3 seconds should be enough
+	time.Sleep(3 * time.Second) // Wait for election attempts to fail
 
 	// Cluster should NOT have a leader (no majority)
 	// With only 2 nodes remaining out of 5, there's no majority (need 3)
+	// A leader might have been elected BEFORE we stopped the nodes
+	// In Raft, leaders don't automatically step down when they can't reach majority
+	// However, they should eventually step down when they can't get responses from followers
+	// or when election timeouts occur and new elections fail
+
+	// Create a set of stopped node indices for quick lookup
+	stoppedSet := make(map[int]bool)
+	for _, idx := range stoppedIndices {
+		stoppedSet[idx] = true
+	}
+
+	// Wait for any pre-existing leader to step down
+	// Leaders should step down when they can't get AppendEntries responses from majority
+	// Heartbeat interval is 50ms, so a few seconds should be enough
+	time.Sleep(3 * time.Second) // Wait for leader to realize it can't reach majority
+
 	// Check multiple times to catch any transient leader states
 	// Give extra time between checks to ensure any transient leaders step down
-	for i := 0; i < 7; i++ {
+	for i := 0; i < 5; i++ {
 		leaderCount := cluster.CountLeaders()
 		if leaderCount > 0 {
-			if i < 6 {
+			// Check if the leader is one of the stopped nodes (shouldn't happen, but verify)
+			leaderIdx := cluster.GetLeaderIndex()
+			if leaderIdx >= 0 && stoppedSet[leaderIdx] {
+				t.Errorf("Stopped node %d is still leader - this should not happen", leaderIdx)
+				break
+			}
+
+			if i < 4 {
 				// Wait longer and check again - might be transient
-				// Leaders should step down when they realize they don't have majority
-				// But Raft doesn't require this, so we need to wait for election timeout
-				time.Sleep(4 * time.Second)
+				// A leader might exist from before we stopped nodes, but it should step down
+				// when it realizes it can't reach majority (heartbeats fail)
+				time.Sleep(2 * time.Second)
 				continue
 			}
-			// Final check - if there's still a leader, the test fails
-			// This could happen if a leader was elected right before nodes were stopped
-			// and hasn't stepped down yet (Raft doesn't require leaders to step down)
-			t.Errorf("Cluster should not have leader without majority, got %d leaders", leaderCount)
+			// Final check - if there's still a leader after all this time, it's a problem
+			// The leader should have stepped down when it couldn't reach majority
+			t.Logf("Warning: Leader still exists after stopping majority nodes")
+			t.Errorf("Cluster should not have leader without majority, got %d leaders (leaderIdx=%d)", leaderCount, leaderIdx)
 		} else {
 			break // No leader found, test passes
 		}

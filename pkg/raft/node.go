@@ -38,6 +38,9 @@ type Node struct {
 	nextIndex  map[string]int
 	matchIndex map[string]int
 
+	// Quorum tracking
+	lastContact map[string]time.Time
+
 	// Node configuration
 	nodeID            string
 	peers             []string
@@ -56,6 +59,9 @@ type Node struct {
 
 	// Stopped state - atomic flag for fast checks without lock
 	stopped int32 // 0 = running, 1 = stopped (use atomic operations)
+
+	// Lifecycle management
+	wg sync.WaitGroup // Waits for goroutines to exit
 
 	// Persistence
 	wal         *wal.WAL
@@ -94,6 +100,7 @@ func NewNode(nodeID string, peers []string, dataDir string, logger *zap.Logger) 
 		lastApplied:        0,
 		nextIndex:          make(map[string]int),
 		matchIndex:         make(map[string]int),
+		lastContact:        make(map[string]time.Time),
 		electionTimeout:    2000 * time.Millisecond,
 		heartbeatInterval:  50 * time.Millisecond,
 		applyCh:            make(chan ApplyMsg, 100),
@@ -113,14 +120,29 @@ func (n *Node) Start() {
 	// Reset stopped flag (in case node was restarted)
 	atomic.StoreInt32(&n.stopped, 0)
 
+	// CRITICAL: Recreate stopCh if it was closed (from previous Stop())
+	// Without this, the run() loop will immediately exit because <-n.stopCh
+	// will be ready (closed channel always returns immediately)
+	n.mu.Lock()
+	select {
+	case <-n.stopCh:
+		// Channel was closed, recreate it
+		n.stopCh = make(chan struct{})
+	default:
+		// Channel is still open, nothing to do
+	}
+	n.mu.Unlock()
+
 	// Start apply loop
 	n.startApplyLoop()
 
+	n.wg.Add(1)
 	go n.run()
 }
 
 // run is the main loop for the Raft node
 func (n *Node) run() {
+	defer n.wg.Done()
 	for {
 		select {
 		case <-n.stopCh:
@@ -344,6 +366,10 @@ func (n *Node) runLeader() {
 	ticker := time.NewTicker(n.heartbeatInterval)
 	defer ticker.Stop()
 
+	// Check quorum periodically to step down if partitioned
+	quorumTicker := time.NewTicker(n.electionTimeout)
+	defer quorumTicker.Stop()
+
 	for {
 		select {
 		case <-n.stopCh:
@@ -356,6 +382,32 @@ func (n *Node) runLeader() {
 			return
 		case <-ticker.C:
 			n.sendHeartbeats()
+		case <-quorumTicker.C:
+			n.mu.Lock()
+			if n.state != StateLeader {
+				n.mu.Unlock()
+				return
+			}
+
+			activePeers := 1 // Self
+			threshold := time.Now().Add(-n.electionTimeout)
+			for _, peer := range n.peers {
+				if last, ok := n.lastContact[peer]; ok && last.After(threshold) {
+					activePeers++
+				}
+			}
+
+			votesNeeded := (len(n.peers)+1)/2 + 1
+			if activePeers < votesNeeded {
+				n.logger.Warn("Lost quorum, stepping down",
+					zap.Int("active", activePeers),
+					zap.Int("needed", votesNeeded))
+				n.state = StateFollower
+				n.votedFor = ""
+				n.mu.Unlock()
+				return
+			}
+			n.mu.Unlock()
 		}
 	}
 }
@@ -410,7 +462,9 @@ func (n *Node) sendHeartbeats() {
 		if peer == n.nodeID {
 			continue
 		}
+		n.wg.Add(1)
 		go func(peer string) {
+			defer n.wg.Done()
 			// Get entries to send based on nextIndex
 			n.mu.RLock()
 			nextIdx := n.nextIndex[peer]
@@ -451,6 +505,9 @@ func (n *Node) sendHeartbeats() {
 			// Process reply
 			n.mu.Lock()
 			defer n.mu.Unlock()
+
+			// Update last contact time
+			n.lastContact[peer] = time.Now()
 
 			if n.state != StateLeader || n.currentTerm != term {
 				return
