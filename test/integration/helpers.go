@@ -101,15 +101,10 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 		}
 
 		// Wire up ApplyCh to Store (simulate main.go)
+		// This goroutine will be recreated in Start() if node is restarted
 		go func(n *raft.Node, s *kv.Store) {
-			for {
-				applyCh := n.ApplyCh()
-				if applyCh == nil {
-					// Node not started or stopped, wait a bit and retry
-					time.Sleep(100 * time.Millisecond)
-					continue
-				}
-				for msg := range applyCh {
+			applyCh := n.ApplyCh()
+			for msg := range applyCh {
 				if msg.CommandValid {
 					if cmd, ok := msg.Command.(*kv.Command); ok {
 						s.Apply(cmd)
@@ -134,13 +129,43 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 						}
 					}
 				}
-				// Channel closed, break inner loop and retry getting new channel
-				break
 			}
 		}(node, store)
 
 		cluster.Nodes[i] = node
 		cluster.Stores[i] = store
+
+		// Start the apply goroutine for this node
+		// This will be recreated on restart in Start()
+		go func(n *raft.Node, s *kv.Store) {
+			applyCh := n.ApplyCh()
+			for msg := range applyCh {
+				if msg.CommandValid {
+					if cmd, ok := msg.Command.(*kv.Command); ok {
+						s.Apply(cmd)
+					} else if cmdMap, ok := msg.Command.(map[string]interface{}); ok {
+						// Handle map conversion
+						cmd := &kv.Command{}
+						if typeStr, ok := cmdMap["type"].(string); ok {
+							cmd.Type = kv.CommandType(typeStr)
+						}
+						if key, ok := cmdMap["key"].(string); ok {
+							cmd.Key = key
+						}
+						if value, ok := cmdMap["value"].(string); ok {
+							cmd.Value = value
+						}
+						s.Apply(cmd)
+					} else if cmdBytes, ok := msg.Command.([]byte); ok {
+						// Parse byte command like "PUT key value"
+						cmd := parseByteCommand(cmdBytes)
+						if cmd != nil {
+							s.Apply(cmd)
+						}
+					}
+				}
+			}
+		}(node, store)
 	}
 
 	// Register cleanup
@@ -157,18 +182,8 @@ func (c *TestCluster) Start() error {
 	defer c.mu.Unlock()
 
 	for i, node := range c.Nodes {
-		// Reset apply channel if node was stopped (channel was closed)
-		// Check if channel is closed by trying to read (non-blocking)
-		applyCh := node.ApplyCh()
-		select {
-		case _, ok := <-applyCh:
-			if !ok {
-				// Channel is closed, reset it
-				node.ResetApplyCh()
-			}
-		default:
-			// Channel is open, continue
-		}
+		// Always reset apply channel before starting (in case node was stopped)
+		node.ResetApplyCh()
 
 		// Reinitialize persistence if needed
 		if err := node.InitializePersistence(); err != nil {
@@ -176,6 +191,39 @@ func (c *TestCluster) Start() error {
 		}
 
 		node.Start()
+
+		// Recreate apply goroutine (channel was reset, need new goroutine)
+		store := c.Stores[i]
+		go func(n *raft.Node, s *kv.Store) {
+			applyCh := n.ApplyCh()
+			for msg := range applyCh {
+				if msg.CommandValid {
+					if cmd, ok := msg.Command.(*kv.Command); ok {
+						s.Apply(cmd)
+					} else if cmdMap, ok := msg.Command.(map[string]interface{}); ok {
+						// Handle map conversion
+						cmd := &kv.Command{}
+						if typeStr, ok := cmdMap["type"].(string); ok {
+							cmd.Type = kv.CommandType(typeStr)
+						}
+						if key, ok := cmdMap["key"].(string); ok {
+							cmd.Key = key
+						}
+						if value, ok := cmdMap["value"].(string); ok {
+							cmd.Value = value
+						}
+						s.Apply(cmd)
+					} else if cmdBytes, ok := msg.Command.([]byte); ok {
+						// Parse byte command like "PUT key value"
+						cmd := parseByteCommand(cmdBytes)
+						if cmd != nil {
+							s.Apply(cmd)
+						}
+					}
+				}
+			}
+		}(node, store)
+
 		// Use existing listener if available (from allocatePorts)
 		// Note: StartTransport takes ownership of the listener? No, http.Server.Serve does not close it on error usually, but does on Shutdown.
 		// However, we need to handle restarts. If we restart, we need a NEW listener because the old one is closed.
