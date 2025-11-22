@@ -447,3 +447,14 @@ func (n *Node) GetCommitIndex() int {
 	return n.commitIndex
 }
 
+// IsStopped returns true if the node has been stopped
+func (n *Node) IsStopped() bool {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	select {
+	case <-n.stopCh:
+		return true
+	default:
+		return false
+	}
+}

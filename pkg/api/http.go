@@ -182,4 +182,3 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 		"status": "ok",
 	})
 }
-

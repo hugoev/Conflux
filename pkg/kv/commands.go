@@ -19,5 +19,3 @@ type Command struct {
 func (c *Command) IsReadOnly() bool {
 	return false // All our commands are writes for now
 }
-
-

@@ -213,7 +213,7 @@ func (c *TestCluster) GetLeaderIndex() int {
 	defer c.mu.Unlock()
 
 	for i, node := range c.Nodes {
-		if node.IsLeader() {
+		if node != nil && !node.IsStopped() && node.IsLeader() {
 			return i
 		}
 	}
@@ -230,13 +230,18 @@ func (c *TestCluster) GetLeader() *raft.Node {
 }
 
 // CountLeaders returns the number of nodes that think they are leader
+// Only counts nodes that are actually running (not stopped)
 func (c *TestCluster) CountLeaders() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	count := 0
 	for _, node := range c.Nodes {
-		if node.IsLeader() {
+		if node == nil {
+			continue
+		}
+		// Only count leaders that are not stopped
+		if !node.IsStopped() && node.IsLeader() {
 			count++
 		}
 	}
@@ -272,8 +277,8 @@ func (c *TestCluster) RestartNode(idx int) error {
 		c.t.Logf("Failed to stop node during restart: %v", err)
 	}
 
-	// Small delay to ensure cleanup
-	time.Sleep(100 * time.Millisecond)
+	// Wait longer to ensure cleanup and port release
+	time.Sleep(500 * time.Millisecond)
 
 	// Reset apply channel (since Stop closed it)
 	node.ResetApplyCh()

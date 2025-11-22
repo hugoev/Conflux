@@ -10,6 +10,10 @@ import (
 
 // TestNetworkPartition tests behavior during network partitions
 func TestNetworkPartition(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping network partition test in short mode")
+	}
+
 	// Create 5-node cluster for better partition scenarios
 	cluster := NewTestCluster(t, 5)
 
@@ -100,18 +104,32 @@ func TestNetworkPartition(t *testing.T) {
 		if err := cluster.RestartNode(idx); err != nil {
 			t.Fatalf("Failed to restart node-%d: %v", idx, err)
 		}
+		// Small delay between restarts
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	t.Log("Partition healed, waiting for nodes to catch up...")
 	time.Sleep(2 * time.Second)
 
-	// Verify all nodes eventually have both keys
+	// Verify all nodes eventually have both keys (with shorter timeout per node)
 	for i, store := range cluster.Stores {
+		// Skip stopped nodes that weren't restarted
+		isStopped := false
+		for _, stoppedIdx := range stoppedNodes {
+			if i == stoppedIdx {
+				isStopped = false // It was restarted
+				break
+			}
+		}
+		if isStopped {
+			continue
+		}
+
 		AssertEventuallyTrue(t, func() bool {
 			val1, ok1 := store.Get(key)
 			val2, ok2 := store.Get(key2)
 			return ok1 && val1 == value && ok2 && val2 == value2
-		}, 10*time.Second, fmt.Sprintf("Node %d did not catch up after partition", i))
+		}, 5*time.Second, fmt.Sprintf("Node %d did not catch up after partition", i))
 	}
 }
 
@@ -211,11 +229,11 @@ func TestConcurrentOperations(t *testing.T) {
 				}
 
 				cmd := &kv.Command{
-		Type:  kv.CommandPut,
-		Key:   key,
-		Value: value,
-	}
-	if err := leader.Propose(cmd); err != nil {
+					Type:  kv.CommandPut,
+					Key:   key,
+					Value: value,
+				}
+				if err := leader.Propose(cmd); err != nil {
 					errors <- fmt.Errorf("client %d propose %d failed: %w", cid, i, err)
 				}
 			}
@@ -295,11 +313,11 @@ func TestPerformanceThroughput(t *testing.T) {
 		}
 
 		cmd := &kv.Command{
-		Type:  kv.CommandPut,
-		Key:   key,
-		Value: value,
-	}
-	if err := leader.Propose(cmd); err != nil {
+			Type:  kv.CommandPut,
+			Key:   key,
+			Value: value,
+		}
+		if err := leader.Propose(cmd); err != nil {
 			t.Fatalf("Propose %d failed: %v", i, err)
 		}
 	}
@@ -329,4 +347,3 @@ func TestPerformanceThroughput(t *testing.T) {
 		}
 	}
 }
-

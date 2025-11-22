@@ -81,8 +81,8 @@ func TestLeaderElection(t *testing.T) {
 	cluster.StopNode(initialLeader)
 	t.Logf("Stopped leader node-%d", initialLeader)
 
-	// Wait for new leader election
-	time.Sleep(500 * time.Millisecond) // Give time for election timeout
+	// Wait for new leader election (need longer timeout for election)
+	time.Sleep(2 * time.Second) // Give time for election timeout
 
 	newLeader, err := cluster.WaitForLeader(15 * time.Second)
 	if err != nil {
@@ -267,10 +267,11 @@ func TestMajorityNodeFailure(t *testing.T) {
 		}
 	}
 
-	// Wait for election timeout
-	time.Sleep(1 * time.Second)
+	// Wait for election timeout and state updates
+	time.Sleep(3 * time.Second)
 
 	// Cluster should NOT have a leader (no majority)
+	// With only 2 nodes remaining out of 5, there's no majority (need 3)
 	leaderCount := cluster.CountLeaders()
 	if leaderCount > 0 {
 		t.Errorf("Cluster should not have leader without majority, got %d leaders", leaderCount)

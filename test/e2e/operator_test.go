@@ -33,7 +33,7 @@ func TestOperatorDeployment(t *testing.T) {
 	sts := &appsv1.StatefulSet{}
 	key := types.NamespacedName{
 		Name:      "raftcluster-sample",
-		Namespace:  "default",
+		Namespace: "default",
 	}
 
 	if err := f.KubeClient.RESTClient().Get().

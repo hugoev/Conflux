@@ -166,4 +166,3 @@ func BenchmarkThroughput(t *testing.T, numOps int, operation func(int) error) (f
 	t.Logf("Throughput: %.2f ops/sec (%d operations in %v)", throughput, numOps, elapsed)
 	return throughput, nil
 }
-

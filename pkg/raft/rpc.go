@@ -172,4 +172,3 @@ func (n *Node) isLogUpToDate(candidateLastLogIndex, candidateLastLogTerm int) bo
 	}
 	return false
 }
-
