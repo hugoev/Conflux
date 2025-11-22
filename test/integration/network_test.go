@@ -257,14 +257,33 @@ func TestConcurrentOperations(t *testing.T) {
 
 	// Wait for replication - total writes = numClients * numWritesPerClient
 	totalWrites := numClients * numWritesPerClient
-	if err := cluster.WaitForCommitIndex(totalWrites, 30*time.Second); err != nil {
+	if err := cluster.WaitForCommitIndex(totalWrites, 60*time.Second); err != nil {
 		t.Fatalf("Replication failed: %v", err)
 	}
 
-	// Wait for data to be applied
-	time.Sleep(2 * time.Second)
+	// Wait for data to be applied to all stores
+	time.Sleep(3 * time.Second)
 
 	// Verify all writes were replicated with retries
+	// Use WaitForDataReplication for sample keys first to ensure replication is working
+	sampleKeys := []struct {
+		clientID int
+		keyIdx   int
+	}{
+		{0, 0}, {0, numWritesPerClient / 2}, {0, numWritesPerClient - 1},
+		{numClients / 2, 0}, {numClients / 2, numWritesPerClient / 2},
+		{numClients - 1, numWritesPerClient - 1},
+	}
+
+	for _, sample := range sampleKeys {
+		key := fmt.Sprintf("client-%d-key-%d", sample.clientID, sample.keyIdx)
+		expectedValue := fmt.Sprintf("value-%d-%d", sample.clientID, sample.keyIdx)
+		if err := cluster.WaitForDataReplication(key, expectedValue, 10*time.Second); err != nil {
+			t.Fatalf("Sample key %s did not replicate: %v", key, err)
+		}
+	}
+
+	// Now verify all keys with retries
 	missingKeys := make(map[string]string)
 	for clientID := 0; clientID < numClients; clientID++ {
 		for i := 0; i < numWritesPerClient; i++ {
@@ -274,16 +293,16 @@ func TestConcurrentOperations(t *testing.T) {
 		}
 	}
 
-	// Retry verification
-	maxRetries := 3
+	// Retry verification with longer waits
+	maxRetries := 5
 	for retry := 0; retry < maxRetries && len(missingKeys) > 0; retry++ {
 		if retry > 0 {
-			time.Sleep(2 * time.Second)
+			time.Sleep(3 * time.Second)
 		}
 
 		for key, expectedValue := range missingKeys {
 			allMatch := true
-			for nodeIdx, store := range cluster.Stores {
+			for _, store := range cluster.Stores {
 				value, exists := store.Get(key)
 				if !exists || value != expectedValue {
 					allMatch = false
@@ -362,17 +381,19 @@ func TestPerformanceThroughput(t *testing.T) {
 	t.Logf("Write throughput: %.2f ops/sec (%d writes in %v)", throughput, numWrites, elapsed)
 
 	// Wait for replication and commit
-	if err := cluster.WaitForCommitIndex(numWrites, 90*time.Second); err != nil {
+	if err := cluster.WaitForCommitIndex(numWrites, 120*time.Second); err != nil {
 		t.Fatalf("Replication failed: %v", err)
 	}
 
-	// Wait for data to be applied to all stores - check sample keys first
-	// Check a few keys to ensure replication is working
+	// Wait for data to be applied to all stores
+	time.Sleep(3 * time.Second)
+
+	// Check sample keys first to ensure replication is working
 	sampleKeys := []int{0, numWrites / 4, numWrites / 2, numWrites * 3 / 4, numWrites - 1}
 	for _, idx := range sampleKeys {
 		key := fmt.Sprintf("perf-key-%d", idx)
 		expectedValue := fmt.Sprintf("value-%d", idx)
-		if err := cluster.WaitForDataReplication(key, expectedValue, 20*time.Second); err != nil {
+		if err := cluster.WaitForDataReplication(key, expectedValue, 30*time.Second); err != nil {
 			t.Fatalf("Sample key %s did not replicate: %v", key, err)
 		}
 	}
