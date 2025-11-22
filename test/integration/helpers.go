@@ -134,38 +134,6 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 
 		cluster.Nodes[i] = node
 		cluster.Stores[i] = store
-
-		// Start the apply goroutine for this node
-		// This will be recreated on restart in Start()
-		go func(n *raft.Node, s *kv.Store) {
-			applyCh := n.ApplyCh()
-			for msg := range applyCh {
-				if msg.CommandValid {
-					if cmd, ok := msg.Command.(*kv.Command); ok {
-						s.Apply(cmd)
-					} else if cmdMap, ok := msg.Command.(map[string]interface{}); ok {
-						// Handle map conversion
-						cmd := &kv.Command{}
-						if typeStr, ok := cmdMap["type"].(string); ok {
-							cmd.Type = kv.CommandType(typeStr)
-						}
-						if key, ok := cmdMap["key"].(string); ok {
-							cmd.Key = key
-						}
-						if value, ok := cmdMap["value"].(string); ok {
-							cmd.Value = value
-						}
-						s.Apply(cmd)
-					} else if cmdBytes, ok := msg.Command.([]byte); ok {
-						// Parse byte command like "PUT key value"
-						cmd := parseByteCommand(cmdBytes)
-						if cmd != nil {
-							s.Apply(cmd)
-						}
-					}
-				}
-			}
-		}(node, store)
 	}
 
 	// Register cleanup
