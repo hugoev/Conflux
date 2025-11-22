@@ -60,9 +60,9 @@ func (f *Framework) Setup() {
 	}
 	f.KubeClient = clientset
 
-	// Build docker image
+	// Build docker image from operator directory
 	f.t.Log("Building operator image...")
-	if err := f.runCommand("docker", "build", "-t", "raft-operator:e2e", "."); err != nil {
+	if err := f.runCommand("docker", "build", "-t", "raft-operator:e2e", "-f", "operator/Dockerfile", "operator/"); err != nil {
 		f.t.Fatalf("Failed to build docker image: %v", err)
 	}
 
