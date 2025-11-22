@@ -403,7 +403,7 @@ func (c *TestCluster) WaitForCommitIndex(minIndex int, timeout time.Duration) er
 
 		allReached := true
 		c.mu.Lock()
-		for i, node := range c.Nodes {
+		for _, node := range c.Nodes {
 			// Skip stopped nodes - they don't participate in commit decisions
 			if node != nil && node.IsStopped() {
 				continue
