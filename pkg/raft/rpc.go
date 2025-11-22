@@ -178,6 +178,19 @@ func (n *Node) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) error
 	}
 
 	// 2. If votedFor is null or candidateId, and candidate's log is at least as up-to-date as receiver's log, grant vote
+	// Double-check stopCh after acquiring lock (defensive check)
+	select {
+	case <-n.stopCh:
+		// Node was stopped while we were acquiring lock - reject vote
+		reply.VoteGranted = false
+		n.logger.Debug("Rejected RequestVote: node stopped during processing",
+			zap.String("candidate", args.CandidateID),
+			zap.Int("term", args.Term))
+		return nil
+	default:
+		// Continue processing
+	}
+
 	if (n.votedFor == "" || n.votedFor == args.CandidateID) && n.isLogUpToDate(args.LastLogIndex, args.LastLogTerm) {
 		n.votedFor = args.CandidateID
 		reply.VoteGranted = true
