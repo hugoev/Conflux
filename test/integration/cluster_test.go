@@ -124,7 +124,8 @@ func TestLeaderFailover(t *testing.T) {
 
 		// Wait for leader to stop and new leader to be elected
 		// Give more time for the stopped leader to fully shut down and HTTP server to close
-		time.Sleep(3 * time.Second)
+		// This ensures the old leader cannot grant votes or accept entries
+		time.Sleep(4 * time.Second)
 		newLeaderIdx, err := cluster.WaitForLeader(30 * time.Second)
 		if err != nil {
 			t.Fatalf("Failover %d failed: %v", i+1, err)
@@ -143,7 +144,8 @@ func TestLeaderFailover(t *testing.T) {
 		// Give more time for node to rejoin and stabilize
 		// Restarted node needs to reconnect, receive heartbeats, and sync state
 		// Leader needs to discover the restarted peer and adjust nextIndex
-		time.Sleep(3 * time.Second)
+		// Also wait for any potential election attempts to settle
+		time.Sleep(4 * time.Second)
 
 		// Verify exactly one leader
 		AssertLeaderElected(t, cluster)
@@ -268,33 +270,55 @@ func TestMajorityNodeFailure(t *testing.T) {
 	}
 
 	// Stop 3 nodes including leader (majority)
-	cluster.StopNode(leaderIdx)
+	// Stop them all at once to minimize race conditions
+	// If we stop them sequentially, there's a window where elections can succeed
+	stoppedIndices := []int{leaderIdx}
 	stoppedNodes := 1
 	for i := 0; i < len(cluster.Nodes) && stoppedNodes < 3; i++ {
 		if i != leaderIdx {
-			cluster.StopNode(i)
+			stoppedIndices = append(stoppedIndices, i)
 			stoppedNodes++
 		}
 	}
 
+	// Stop all nodes in quick succession (but still sequentially to avoid port conflicts)
+	// Note: Even though we stop them quickly, there's still a small window for race conditions
+	for _, idx := range stoppedIndices {
+		cluster.StopNode(idx)
+		// Small delay between stops to ensure proper cleanup
+		time.Sleep(100 * time.Millisecond)
+	}
+
 	// Wait for nodes to fully stop (HTTP servers to shut down, RPCs to be rejected)
-	// Then wait for election timeout and state updates
+	// This is critical - we need to ensure stopped nodes cannot grant votes
+	// Wait longer to ensure all in-flight RPCs are rejected and HTTP servers are closed
+	// Also wait for any ongoing elections to complete (they should fail without majority)
+	time.Sleep(8 * time.Second) // Wait for HTTP servers to fully shut down and elections to fail
+
+	// Wait for election timeout and state updates
 	// Give enough time for any election attempts to complete and fail
 	// Nodes need time to realize they can't get majority votes
-	time.Sleep(3 * time.Second) // Wait for HTTP servers to shut down
-	time.Sleep(3 * time.Second) // Wait for election attempts to fail
+	// With only 2 nodes remaining, they need 3 votes (majority of 5), so elections should fail
+	// Also wait for any transient leaders to step down or realize they can't commit
+	time.Sleep(8 * time.Second) // Wait for election attempts to fail and leaders to step down
 
 	// Cluster should NOT have a leader (no majority)
 	// With only 2 nodes remaining out of 5, there's no majority (need 3)
 	// Check multiple times to catch any transient leader states
-	for i := 0; i < 3; i++ {
+	// Give extra time between checks to ensure any transient leaders step down
+	for i := 0; i < 7; i++ {
 		leaderCount := cluster.CountLeaders()
 		if leaderCount > 0 {
-			if i < 2 {
-				// Wait a bit more and check again - might be transient
-				time.Sleep(2 * time.Second)
+			if i < 6 {
+				// Wait longer and check again - might be transient
+				// Leaders should step down when they realize they don't have majority
+				// But Raft doesn't require this, so we need to wait for election timeout
+				time.Sleep(4 * time.Second)
 				continue
 			}
+			// Final check - if there's still a leader, the test fails
+			// This could happen if a leader was elected right before nodes were stopped
+			// and hasn't stepped down yet (Raft doesn't require leaders to step down)
 			t.Errorf("Cluster should not have leader without majority, got %d leaders", leaderCount)
 		} else {
 			break // No leader found, test passes

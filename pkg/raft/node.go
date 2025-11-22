@@ -231,10 +231,12 @@ func (n *Node) runCandidate() {
 
 			if err != nil {
 				// RPC failed after retries (peer is unreachable/stopped)
+				// This counts as a "no" vote - we can't get a vote from an unreachable peer
 				n.logger.Debug("RequestVote RPC failed",
 					zap.String("peer", peer),
 					zap.Error(err),
 					zap.Int("term", term))
+				// Send false vote (peer didn't grant vote)
 				voteCh <- false
 				return
 			}
@@ -439,7 +441,10 @@ func (n *Node) sendHeartbeats() {
 
 			var reply AppendEntriesReply
 			if err := n.sendAppendEntries(peer, args, &reply); err != nil {
-				// RPC failed, will retry next heartbeat
+				// RPC failed (peer is unreachable/stopped)
+				// This is expected for stopped peers, will retry next heartbeat
+				// Note: We don't step down here because network failures are transient
+				// The leader will continue trying to reach peers
 				return
 			}
 

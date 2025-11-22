@@ -32,3 +32,4 @@ EXPOSE 8080 9090
 CMD ["./raftnode"]
 
 
+

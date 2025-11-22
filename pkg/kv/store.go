@@ -67,3 +67,4 @@ func (s *Store) Put(key, value string) error {
 	s.data[key] = value
 	return nil
 }
+

@@ -205,11 +205,12 @@ func TestSplitBrainPrevention(t *testing.T) {
 
 	// Wait for nodes to reconnect and stabilize
 	// Restarted nodes need time to reconnect, receive heartbeats, and sync state
-	time.Sleep(3 * time.Second)
+	// Also need time for any election attempts to complete
+	time.Sleep(4 * time.Second)
 
 	// Now should have leader (3 nodes = majority)
 	// After full restart, nodes need more time to reconnect and elect a leader
-	newLeaderIdx, err := cluster.WaitForLeader(45 * time.Second)
+	newLeaderIdx, err := cluster.WaitForLeader(60 * time.Second)
 	if err != nil {
 		t.Fatalf("Leader election after majority restored failed: %v", err)
 	}

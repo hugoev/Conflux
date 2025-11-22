@@ -171,3 +171,4 @@ func TestGetPeerAddress(t *testing.T) {
 		t.Errorf("Expected address to be '%s', got '%s'", expected, addr)
 	}
 }
+

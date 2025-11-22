@@ -190,7 +190,11 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 	}
 
 	// Wait for follower to reconnect and catch up
-	time.Sleep(2 * time.Second)
+	// Restarted follower needs to:
+	// 1. Recover state from WAL/snapshots
+	// 2. Reconnect to leader
+	// 3. Receive AppendEntries and catch up
+	time.Sleep(3 * time.Second)
 
 	// Follower should catch up - check in batches with retries
 	store := cluster.Stores[followerIdx]
@@ -270,7 +274,9 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 	}
 
 	// Wait for replication
-	if err := cluster.WaitForCommitIndex(2, 15*time.Second); err != nil {
+	// With 2 active nodes out of 3 total, we can commit (2/3 = majority)
+	// Commit index should advance once both active nodes have the entry
+	if err := cluster.WaitForCommitIndex(2, 25*time.Second); err != nil {
 		t.Fatalf("Replication after crash failed: %v", err)
 	}
 

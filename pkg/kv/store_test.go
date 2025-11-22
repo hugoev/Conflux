@@ -50,3 +50,4 @@ func TestStore_Size(t *testing.T) {
 		t.Errorf("Expected size 2, got %d", store.Size())
 	}
 }
+
