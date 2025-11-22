@@ -2,6 +2,7 @@ package raft
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -16,7 +17,11 @@ func TestTransport(t *testing.T) {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 
 	// Start transport
-	if err := node.StartTransport(addr); err != nil {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		t.Fatalf("Failed to bind: %v", err)
+	}
+	if err := node.StartTransport(listener); err != nil {
 		t.Fatalf("Failed to start transport: %v", err)
 	}
 	time.Sleep(100 * time.Millisecond)

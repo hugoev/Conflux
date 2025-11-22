@@ -20,3 +20,4 @@ func (n *Node) resetElectionTimeout() time.Duration {
 
 	return min + time.Duration(rng.Int63n(int64(max-min)))
 }
+

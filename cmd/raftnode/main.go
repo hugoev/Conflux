@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -57,7 +58,14 @@ func main() {
 		}
 
 		raftNode.Start()
-		if err := raftNode.StartTransport(fmt.Sprintf(":%d", cfg.RaftPort)); err != nil {
+
+		// Create listener for Raft transport
+		raftListener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.RaftPort))
+		if err != nil {
+			logger.Fatal("Failed to bind Raft transport port", zap.Error(err))
+		}
+
+		if err := raftNode.StartTransport(raftListener); err != nil {
 			logger.Fatal("Failed to start Raft transport", zap.Error(err))
 		}
 		logger.Info("Raft consensus enabled", zap.Strings("peers", cfg.Peers), zap.Int("raft_port", cfg.RaftPort))
@@ -129,3 +137,4 @@ func main() {
 
 	logger.Info("Shutdown complete")
 }
+

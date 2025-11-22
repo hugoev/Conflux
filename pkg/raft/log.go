@@ -27,3 +27,4 @@ func (n *Node) getLastLogTermLocked() int {
 	}
 	return n.log[len(n.log)-1].Term
 }
+

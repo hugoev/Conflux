@@ -172,3 +172,4 @@ docker compose down -v
 - Set up alerting rules in Prometheus
 - Deploy to Kubernetes (see docs/design-operator.md)
 - Add distributed tracing with Jaeger
+

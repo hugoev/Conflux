@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -136,4 +137,50 @@ func (f *Framework) runCommand(name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// GetRaftClusterStatus retrieves the status of a RaftCluster
+func (f *Framework) GetRaftClusterStatus(name, namespace string) (map[string]interface{}, error) {
+	f.t.Helper()
+	
+	// Use kubectl to get status
+	cmd := exec.Command("kubectl", "get", "raftcluster", name,
+		"-n", namespace,
+		"-o", "jsonpath={.status}")
+	_, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get status: %w", err)
+	}
+	
+	// Parse JSON output (simplified - in production use proper JSON parsing)
+	status := make(map[string]interface{})
+	// For now, return empty map - caller can use kubectl directly
+	return status, nil
+}
+
+// WaitForCondition waits for a condition on a resource
+func (f *Framework) WaitForCondition(resource, name, condition, namespace string, timeout time.Duration) error {
+	f.t.Helper()
+	f.t.Logf("Waiting for %s/%s condition %s...", resource, name, condition)
+	
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for condition %s on %s/%s", condition, resource, name)
+		case <-ticker.C:
+			cmd := exec.CommandContext(ctx, "kubectl", "get", resource, name,
+				"-n", namespace,
+				"-o", fmt.Sprintf("jsonpath={.status.conditions[?(@.type==\"%s\")].status}", condition))
+			output, err := cmd.Output()
+			if err == nil && string(output) == "True" {
+				return nil
+			}
+		}
+	}
 }

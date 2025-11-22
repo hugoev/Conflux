@@ -162,3 +162,4 @@ The operator needs permissions for:
 - **Auto-Scaling**: HPA/VPA integration
 - **Chaos Testing**: Automated failure injection
 
+

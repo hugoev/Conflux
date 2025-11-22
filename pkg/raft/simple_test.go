@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -20,7 +21,11 @@ func TestSimpleRequestVote(t *testing.T) {
 	node.Start()
 
 	// Start transport
-	if err := node.StartTransport(peers[0]); err != nil {
+	listener, err := net.Listen("tcp", peers[0])
+	if err != nil {
+		t.Fatalf("Failed to bind: %v", err)
+	}
+	if err := node.StartTransport(listener); err != nil {
 		t.Fatalf("Failed to start transport: %v", err)
 	}
 	defer func() {

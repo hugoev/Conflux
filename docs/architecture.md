@@ -127,3 +127,4 @@ Nodes discover each other via Kubernetes DNS:
 - Service mesh integration (Linkerd/Envoy)
 - Advanced chaos testing scenarios
 
+

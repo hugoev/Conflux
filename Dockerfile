@@ -31,3 +31,4 @@ EXPOSE 8080 9090
 # Run the binary
 CMD ["./raftnode"]
 
+

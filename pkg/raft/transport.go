@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 )
 
 // StartTransport starts the HTTP transport for Raft RPCs
-func (n *Node) StartTransport(addr string) error {
+func (n *Node) StartTransport(listener net.Listener) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/raft/request_vote", n.handleRequestVoteHTTP)
 	mux.HandleFunc("/raft/append_entries", n.handleAppendEntriesHTTP)
@@ -23,7 +24,6 @@ func (n *Node) StartTransport(addr string) error {
 
 	// Configure server with timeouts for proper cleanup
 	n.server = &http.Server{
-		Addr:              addr,
 		Handler:           mux,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
@@ -33,14 +33,12 @@ func (n *Node) StartTransport(addr string) error {
 
 	// Start server in goroutine
 	go func() {
-		n.logger.Info("Starting Raft HTTP server", zap.String("addr", addr))
-		if err := n.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		n.logger.Info("Starting Raft HTTP server", zap.String("addr", listener.Addr().String()))
+		if err := n.server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			n.logger.Error("HTTP server error", zap.Error(err))
 		}
 	}()
 
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
 	return nil
 }
 

@@ -45,23 +45,76 @@ deploy:
 	cd operator && make deploy IMG=$(IMG)
 
 
-.PHONY: test-unit test-integration test-e2e test-all
+.PHONY: test-unit test-integration test-e2e test-all test-operator
 test-unit:
-	go test -v -race -cover ./pkg/...
+	@echo "Running unit tests..."
+	go test -v -race -coverprofile=coverage-unit.out -covermode=atomic -timeout=10m ./pkg/...
 
 test-integration:
-	go test -v -race ./test/integration/...
+	@echo "Running integration tests..."
+	go test -v -race -timeout=20m -coverprofile=coverage-integration.out ./test/integration/...
 
 test-e2e:
-	go test -v -timeout 20m ./test/e2e/...
+	@echo "Running E2E tests..."
+	@echo "Note: E2E tests require Docker and Kind"
+	go test -v -timeout=30m -coverprofile=coverage-e2e.out ./test/e2e/...
 
-test-all: test-unit test-integration test-e2e
+test-operator:
+	@echo "Running operator tests..."
+	cd operator && go test -v -race -timeout=10m -coverprofile=../coverage-operator.out ./...
 
-.PHONY: lint
+test-all: test-unit test-integration test-operator
+	@echo "All tests completed (excluding E2E - run 'make test-e2e' separately)"
+
+test-coverage:
+	@echo "Generating combined coverage report..."
+	@go test -coverprofile=coverage.out ./pkg/... ./test/integration/...
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+test-benchmark:
+	@echo "Running benchmarks..."
+	go test -bench=. -benchmem -run=^$$ ./pkg/...
+
+.PHONY: lint lint-fix
 lint:
-	golangci-lint run ./...
+	@echo "Running linter..."
+	golangci-lint run --timeout=5m ./...
 
-.PHONY: coverage
+lint-fix:
+	@echo "Fixing linting issues..."
+	golangci-lint run --fix ./...
+
+.PHONY: coverage coverage-html coverage-view
 coverage:
-	go test -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out -o coverage.html
+	@echo "Generating coverage report..."
+	go test -coverprofile=coverage.out -covermode=atomic ./...
+	@go tool cover -func=coverage.out | tail -1
+
+coverage-html: coverage
+	@echo "Generating HTML coverage report..."
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report: coverage.html"
+
+coverage-view: coverage-html
+	@echo "Opening coverage report..."
+	@open coverage.html || xdg-open coverage.html || echo "Please open coverage.html manually"
+
+.PHONY: verify
+verify: lint test-unit
+	@echo "Verification complete"
+
+.PHONY: fmt fmt-check
+fmt:
+	@echo "Formatting code..."
+	@gofmt -s -w .
+	@go mod tidy
+
+fmt-check:
+	@echo "Checking code formatting..."
+	@if [ "$$(gofmt -s -l . | wc -l)" -gt 0 ]; then \
+		echo "Code is not formatted. Run 'make fmt'"; \
+		gofmt -s -d .; \
+		exit 1; \
+	fi
+

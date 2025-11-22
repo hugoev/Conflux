@@ -446,3 +446,4 @@ func (n *Node) GetCommitIndex() int {
 	defer n.mu.RUnlock()
 	return n.commitIndex
 }
+

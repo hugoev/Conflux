@@ -2,6 +2,7 @@ package raft
 
 import (
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -35,7 +36,11 @@ func TestLeaderElection(t *testing.T) {
 		nodes[i] = NewNode(nodeID, peers, "/tmp/raft-test-"+nodeID, logger)
 		nodes[i].Start()
 		// Start transport
-		if err := nodes[i].StartTransport(peers[i]); err != nil {
+		listener, err := net.Listen("tcp", peers[i])
+		if err != nil {
+			t.Fatalf("Failed to bind: %v", err)
+		}
+		if err := nodes[i].StartTransport(listener); err != nil {
 			t.Fatalf("Failed to start transport: %v", err)
 		}
 		time.Sleep(100 * time.Millisecond) // Give it a moment to bind
