@@ -35,3 +35,24 @@ kind-create:
 kind-delete:
 	kind delete cluster --name conflux
 
+
+.PHONY: test-unit test-integration test-e2e test-all
+test-unit:
+	go test -v -race -cover ./pkg/...
+
+test-integration:
+	go test -v -race ./test/integration/...
+
+test-e2e:
+	go test -v -timeout 20m ./test/e2e/...
+
+test-all: test-unit test-integration test-e2e
+
+.PHONY: lint
+lint:
+	golangci-lint run ./...
+
+.PHONY: coverage
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html

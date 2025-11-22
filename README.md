@@ -1,11 +1,12 @@
 # Conflux - Distributed Raft KV Store
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
-[![Tests](https://img.shields.io/badge/tests-passing-success)](https://github.com/hugovillarreal/conflux)
-[![Coverage](https://img.shields.io/badge/coverage-70%25-green)](https://github.com/hugovillarreal/conflux)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Build Status](https://github.com/hugovillarreal/conflux/actions/workflows/test.yml/badge.svg)](https://github.com/hugovillarreal/conflux/actions/workflows/test.yml)
+[![E2E Tests](https://github.com/hugovillarreal/conflux/actions/workflows/e2e.yml/badge.svg)](https://github.com/hugovillarreal/conflux/actions/workflows/e2e.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hugovillarreal/conflux)](https://goreportcard.com/report/github.com/hugovillarreal/conflux)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A production-ready, distributed key-value store built on the Raft consensus algorithm, with a Kubernetes operator for automated cluster management and full observability.
+A production-ready Raft consensus implementation and Kubernetes Operator in Go.
 
 ## ✨ Features
 
@@ -16,6 +17,8 @@ A production-ready, distributed key-value store built on the Raft consensus algo
 - **📊 Full Observability** - Prometheus metrics, Grafana dashboards, structured logging
 - **🔄 Automatic Scaling** - Dynamic cluster resizing via Kubernetes StatefulSets
 - **🛡️ Production Ready** - Comprehensive testing (70%+ coverage), panic recovery, health checks
+- **🧪 Comprehensive Testing** - Unit, Integration, and E2E test suites
+
 
 ## 🚀 Quick Start
 

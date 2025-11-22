@@ -60,3 +60,10 @@ func (s *Store) Size() int {
 	return len(s.data)
 }
 
+// Put sets a value for a key (helper for testing/direct access)
+func (s *Store) Put(key, value string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.data[key] = value
+	return nil
+}
