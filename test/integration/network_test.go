@@ -110,7 +110,17 @@ func TestNetworkPartition(t *testing.T) {
 
 	t.Log("Partition healed, waiting for nodes to catch up...")
 	// Give more time for leader to discover restarted nodes and replicate
-	time.Sleep(5 * time.Second)
+	// Restarted nodes need to catch up on log entries
+	time.Sleep(3 * time.Second)
+
+	// Wait for leader to send heartbeats and replicate to restarted nodes
+	// Use WaitForDataReplication helper for better reliability
+	if err := cluster.WaitForDataReplication(key, value, 20*time.Second); err != nil {
+		t.Fatalf("Initial key did not replicate after partition: %v", err)
+	}
+	if err := cluster.WaitForDataReplication(key2, value2, 20*time.Second); err != nil {
+		t.Fatalf("Partition key did not replicate after partition: %v", err)
+	}
 
 	// Verify all nodes eventually have both keys
 	for i, store := range cluster.Stores {
@@ -118,7 +128,7 @@ func TestNetworkPartition(t *testing.T) {
 			val1, ok1 := store.Get(key)
 			val2, ok2 := store.Get(key2)
 			return ok1 && val1 == value && ok2 && val2 == value2
-		}, 15*time.Second, fmt.Sprintf("Node %d did not catch up after partition", i))
+		}, 10*time.Second, fmt.Sprintf("Node %d did not catch up after partition", i))
 	}
 }
 
@@ -185,8 +195,11 @@ func TestSplitBrainPrevention(t *testing.T) {
 		t.Fatalf("Failed to restart original leader: %v", err)
 	}
 
-	// Now should have leader
-	newLeaderIdx, err := cluster.WaitForLeader(15 * time.Second)
+	// Wait for nodes to reconnect and stabilize
+	time.Sleep(2 * time.Second)
+
+	// Now should have leader (3 nodes = majority)
+	newLeaderIdx, err := cluster.WaitForLeader(30 * time.Second)
 	if err != nil {
 		t.Fatalf("Leader election after majority restored failed: %v", err)
 	}

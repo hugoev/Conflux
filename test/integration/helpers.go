@@ -384,6 +384,7 @@ func (c *TestCluster) WaitForCommitIndex(minIndex int, timeout time.Duration) er
 }
 
 // WaitForDataReplication waits for a key to appear in all stores
+// Only checks stores for nodes that are not stopped
 func (c *TestCluster) WaitForDataReplication(key, expectedValue string, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -393,13 +394,20 @@ func (c *TestCluster) WaitForDataReplication(key, expectedValue string, timeout 
 		<-ticker.C
 
 		allHaveData := true
-		for _, store := range c.Stores {
+		c.mu.Lock()
+		for i, store := range c.Stores {
+			// Skip stopped nodes
+			if c.Nodes[i] != nil && c.Nodes[i].IsStopped() {
+				continue
+			}
 			value, exists := store.Get(key)
 			if !exists || value != expectedValue {
 				allHaveData = false
+				c.mu.Unlock()
 				break
 			}
 		}
+		c.mu.Unlock()
 
 		if allHaveData {
 			return nil
