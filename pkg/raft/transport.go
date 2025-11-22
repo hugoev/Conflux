@@ -53,12 +53,18 @@ func (n *Node) handleRequestVoteHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var reply RequestVoteReply
 	n.logger.Debug("Handling RequestVote", zap.Any("args", args))
-	n.RequestVote(&args, &reply)
+	if err := n.RequestVote(&args, &reply); err != nil {
+		n.logger.Error("Failed to process RequestVote", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	n.logger.Debug("Handled RequestVote", zap.Any("args", args), zap.Any("reply", reply))
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(reply)
+	if err := json.NewEncoder(w).Encode(reply); err != nil {
+		n.logger.Error("Failed to encode response", zap.Error(err))
+	}
 }
 
 func (n *Node) handleAppendEntriesHTTP(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +78,9 @@ func (n *Node) handleAppendEntriesHTTP(w http.ResponseWriter, r *http.Request) {
 	n.AppendEntries(&args, &reply)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(reply)
+	if err := json.NewEncoder(w).Encode(reply); err != nil {
+		n.logger.Error("Failed to encode response", zap.Error(err))
+	}
 }
 
 // sendRequestVote sends RequestVote RPC to a peer

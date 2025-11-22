@@ -123,7 +123,10 @@ func (c *TestCluster) Shutdown() {
 
 	for _, node := range c.Nodes {
 		if node != nil {
-			node.Stop()
+			if err := node.Stop(); err != nil {
+				// Log error but continue shutdown
+				fmt.Printf("Failed to stop node: %v\n", err)
+			}
 		}
 	}
 }
@@ -188,7 +191,9 @@ func (c *TestCluster) StopNode(idx int) {
 	defer c.mu.Unlock()
 
 	if idx >= 0 && idx < len(c.Nodes) {
-		c.Nodes[idx].Stop()
+		if err := c.Nodes[idx].Stop(); err != nil {
+			c.t.Logf("Failed to stop node %d: %v", idx, err)
+		}
 	}
 }
 
@@ -205,7 +210,10 @@ func (c *TestCluster) RestartNode(idx int) error {
 	port := c.Ports[idx]
 
 	// Stop if running
-	node.Stop()
+	// Stop if running
+	if err := node.Stop(); err != nil {
+		c.t.Logf("Failed to stop node during restart: %v", err)
+	}
 
 	// Small delay to ensure cleanup
 	time.Sleep(100 * time.Millisecond)

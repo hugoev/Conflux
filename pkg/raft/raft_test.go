@@ -23,7 +23,9 @@ func TestLeaderElection(t *testing.T) {
 	defer func() {
 		for _, node := range nodes {
 			if node != nil {
-				node.Stop()
+				if err := node.Stop(); err != nil {
+					t.Logf("Failed to stop node: %v", err)
+				}
 			}
 		}
 	}()

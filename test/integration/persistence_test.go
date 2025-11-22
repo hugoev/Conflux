@@ -29,7 +29,9 @@ func TestPersistence_Restart(t *testing.T) {
 	for i := 0; i < numEntries; i++ {
 		key := fmt.Sprintf("persist-key-%d", i)
 		value := fmt.Sprintf("value-%d", i)
-		leaderStore.Put(key, value)
+		if err := leaderStore.Put(key, value); err != nil {
+			t.Fatalf("Failed to put key %s: %v", key, err)
+		}
 		if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
 			t.Fatalf("Failed to propose entry %d: %v", i, err)
 		}
@@ -99,8 +101,12 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 	for i := 0; i < numEntries; i++ {
 		key := fmt.Sprintf("snap-key-%d", i)
 		value := fmt.Sprintf("value-%d", i)
-		leaderStore.Put(key, value)
-		leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value)))
+		if err := leaderStore.Put(key, value); err != nil {
+			t.Fatalf("Failed to put key %s: %v", key, err)
+		}
+		if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+			t.Fatalf("Failed to propose entry %d: %v", i, err)
+		}
 	}
 
 	// Wait for replication
@@ -120,8 +126,12 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 	for i := numEntries; i < numEntries+20; i++ {
 		key := fmt.Sprintf("snap-key-%d", i)
 		value := fmt.Sprintf("value-%d", i)
-		leaderStore.Put(key, value)
-		leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value)))
+		if err := leaderStore.Put(key, value); err != nil {
+			t.Fatalf("Failed to put key %s: %v", key, err)
+		}
+		if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+			t.Fatalf("Failed to propose entry %d: %v", i, err)
+		}
 	}
 
 	// Wait for replication to active follower
@@ -166,8 +176,12 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 	// Write data
 	key := "crash-key"
 	value := "crash-value"
-	leaderStore.Put(key, value)
-	leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value)))
+	if err := leaderStore.Put(key, value); err != nil {
+		t.Fatalf("Failed to put key %s: %v", key, err)
+	}
+	if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+		t.Fatalf("Failed to propose entry: %v", err)
+	}
 
 	time.Sleep(1 * time.Second)
 
@@ -185,8 +199,12 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 	newLeaderStore := cluster.Stores[newLeaderIdx]
 	key2 := "post-crash-key"
 	value2 := "post-crash-value"
-	newLeaderStore.Put(key2, value2)
-	newLeader.Propose([]byte(fmt.Sprintf("PUT %s %s", key2, value2)))
+	if err := newLeaderStore.Put(key2, value2); err != nil {
+		t.Fatalf("Failed to put key %s: %v", key2, err)
+	}
+	if err := newLeader.Propose([]byte(fmt.Sprintf("PUT %s %s", key2, value2))); err != nil {
+		t.Fatalf("Failed to propose entry: %v", err)
+	}
 
 	time.Sleep(1 * time.Second)
 

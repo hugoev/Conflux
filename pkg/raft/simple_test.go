@@ -23,7 +23,11 @@ func TestSimpleRequestVote(t *testing.T) {
 	if err := node.StartTransport(peers[0]); err != nil {
 		t.Fatalf("Failed to start transport: %v", err)
 	}
-	defer node.Stop()
+	defer func() {
+		if err := node.Stop(); err != nil {
+			t.Logf("Failed to stop node: %v", err)
+		}
+	}()
 
 	// Give server time to start
 	time.Sleep(200 * time.Millisecond)
