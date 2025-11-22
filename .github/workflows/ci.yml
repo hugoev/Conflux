@@ -2,12 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: "1.21"
   DOCKER_BUILDKIT: 1
 
 jobs:
@@ -17,30 +17,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache-dependency-path: go.sum
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
 
-    - name: Install dependencies
-      run: go mod download
+      - name: Install dependencies
+        run: go mod download
 
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v4
-      with:
-        version: latest
-        args: --timeout=5m
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          args: --timeout=5m
 
-    - name: Check formatting
-      run: |
-        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-          echo "Code is not formatted. Run 'gofmt -s -w .'"
-          gofmt -s -d .
-          exit 1
-        fi
+      - name: Check formatting
+        run: |
+          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+            echo "Code is not formatted. Run 'gofmt -s -w .'"
+            gofmt -s -d .
+            exit 1
+          fi
 
   # Unit tests - fast feedback
   unit-tests:
@@ -49,33 +49,33 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        go-version: ['1.21', '1.22']
+        go-version: ["1.21", "1.22"]
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ matrix.go-version }}
-        cache-dependency-path: go.sum
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache-dependency-path: go.sum
 
-    - name: Install dependencies
-      run: go mod download
+      - name: Install dependencies
+        run: go mod download
 
-    - name: Run unit tests with race detector
-      run: |
-        go test -v -race -coverprofile=coverage-unit-${{ matrix.go-version }}.out \
-          -covermode=atomic \
-          -timeout=10m \
-          ./pkg/...
+      - name: Run unit tests with race detector
+        run: |
+          go test -v -race -coverprofile=coverage-unit-${{ matrix.go-version }}.out \
+            -covermode=atomic \
+            -timeout=10m \
+            ./pkg/...
 
-    - name: Upload coverage
-      uses: codecov/codecov-action@v4
-      if: always()
-      with:
-        file: ./coverage-unit-${{ matrix.go-version }}.out
-        flags: unit-${{ matrix.go-version }}
-        fail_ci_if_error: false
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage-unit-${{ matrix.go-version }}.out
+          flags: unit-${{ matrix.go-version }}
+          fail_ci_if_error: false
 
   # Integration tests - comprehensive cluster tests
   integration-tests:
@@ -84,41 +84,41 @@ jobs:
     timeout-minutes: 30
     needs: [lint, unit-tests]
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache-dependency-path: go.sum
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
 
-    - name: Install dependencies
-      run: go mod download
+      - name: Install dependencies
+        run: go mod download
 
-    - name: Run integration tests
-      run: |
-        go test -v -race -timeout=25m \
-          -coverprofile=coverage-integration.out \
-          ./test/integration/...
+      - name: Run integration tests
+        run: |
+          go test -v -race -timeout=25m \
+            -coverprofile=coverage-integration.out \
+            ./test/integration/...
 
-    - name: Upload coverage
-      uses: codecov/codecov-action@v4
-      if: always()
-      with:
-        file: ./coverage-integration.out
-        flags: integration
-        fail_ci_if_error: false
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage-integration.out
+          flags: integration
+          fail_ci_if_error: false
 
-    - name: Upload test artifacts
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: integration-test-results
-        path: |
-          test_output.log
-          test_debug.log
-        retention-days: 7
-        if-no-files-found: ignore
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            test_output.log
+            test_debug.log
+          retention-days: 7
+          if-no-files-found: ignore
 
   # Operator tests
   operator-tests:
@@ -127,32 +127,32 @@ jobs:
     timeout-minutes: 15
     needs: [lint]
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache-dependency-path: operator/go.sum
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: operator/go.sum
 
-    - name: Install dependencies
-      working-directory: operator
-      run: go mod download
+      - name: Install dependencies
+        working-directory: operator
+        run: go mod download
 
-    - name: Run operator tests
-      working-directory: operator
-      run: |
-        go test -v -race -timeout=10m \
-          -coverprofile=../coverage-operator.out \
-          ./...
+      - name: Run operator tests
+        working-directory: operator
+        run: |
+          go test -v -race -timeout=10m \
+            -coverprofile=../coverage-operator.out \
+            ./...
 
-    - name: Upload coverage
-      uses: codecov/codecov-action@v4
-      if: always()
-      with:
-        file: ./coverage-operator.out
-        flags: operator
-        fail_ci_if_error: false
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage-operator.out
+          flags: operator
+          fail_ci_if_error: false
 
   # Security scanning
   security:
@@ -161,26 +161,26 @@ jobs:
     timeout-minutes: 10
     needs: [lint]
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
-    - name: Run Gosec Security Scanner
-      uses: securego/gosec@master
-      with:
-        args: '-no-fail -fmt json -out gosec-report.json ./...'
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: "-no-fail -fmt json -out gosec-report.json ./..."
 
-    - name: Upload Gosec results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: gosec-report
-        path: gosec-report.json
-        retention-days: 30
-        if-no-files-found: ignore
+      - name: Upload Gosec results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gosec-report
+          path: gosec-report.json
+          retention-days: 30
+          if-no-files-found: ignore
 
   # Build Docker images (only if secrets are available)
   # This job is optional and will be skipped if Docker Hub credentials are not configured
@@ -189,56 +189,57 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: [lint, unit-tests]
+    # Skip this job entirely if secrets are not configured
     if: |
       github.event_name != 'pull_request' &&
-      secrets.DOCKER_USERNAME != '' &&
-      secrets.DOCKER_PASSWORD != ''
+      secrets.DOCKER_USERNAME != null &&
+      secrets.DOCKER_PASSWORD != null
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: |
-          ${{ secrets.DOCKER_USERNAME }}/conflux
-          ${{ secrets.DOCKER_USERNAME }}/conflux-operator
-        tags: |
-          type=ref,event=branch
-          type=sha,prefix={{branch}}-
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKER_USERNAME }}/conflux
+            ${{ secrets.DOCKER_USERNAME }}/conflux-operator
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
-    - name: Build raft node image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        platforms: linux/amd64,linux/arm64
+      - name: Build raft node image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
 
-    - name: Build operator image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./operator
-        file: ./operator/Dockerfile
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}-operator
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        platforms: linux/amd64,linux/arm64
+      - name: Build operator image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./operator
+          file: ./operator/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}-operator
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
 
   # E2E tests - only on main branch or PRs with e2e label
   # Note: E2E tests build images locally, so they don't depend on Docker Hub secrets
@@ -251,77 +252,77 @@ jobs:
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e'))
     timeout-minutes: 45
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache-dependency-path: go.sum
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: go.sum
 
-    - name: Set up Kind
-      uses: helm/kind-action@v1.8.0
-      with:
-        cluster_name: conflux-e2e
-        node_image: kindest/node:v1.28.0
+      - name: Set up Kind
+        uses: helm/kind-action@v1.8.0
+        with:
+          cluster_name: conflux-e2e
+          node_image: kindest/node:v1.28.0
 
-    - name: Build and load images
-      run: |
-        docker build -t conflux:e2e .
-        docker build -t conflux-operator:e2e ./operator
-        kind load docker-image conflux:e2e --name conflux-e2e
-        kind load docker-image conflux-operator:e2e --name conflux-e2e
+      - name: Build and load images
+        run: |
+          docker build -t conflux:e2e .
+          docker build -t conflux-operator:e2e ./operator
+          kind load docker-image conflux:e2e --name conflux-e2e
+          kind load docker-image conflux-operator:e2e --name conflux-e2e
 
-    - name: Install CRDs
-      run: |
-        cd operator
-        make install
+      - name: Install CRDs
+        run: |
+          cd operator
+          make install
 
-    - name: Deploy operator
-      run: |
-        cd operator
-        make deploy IMG=conflux-operator:e2e
+      - name: Deploy operator
+        run: |
+          cd operator
+          make deploy IMG=conflux-operator:e2e
 
-    - name: Wait for operator
-      run: |
-        kubectl wait --for=condition=available \
-          deployment/raft-operator-controller-manager \
-          -n raft-operator-system \
-          --timeout=120s
+      - name: Wait for operator
+        run: |
+          kubectl wait --for=condition=available \
+            deployment/raft-operator-controller-manager \
+            -n raft-operator-system \
+            --timeout=120s
 
-    - name: Run E2E tests
-      run: |
-        go test -v -timeout=30m \
-          -coverprofile=coverage-e2e.out \
-          ./test/e2e/...
+      - name: Run E2E tests
+        run: |
+          go test -v -timeout=30m \
+            -coverprofile=coverage-e2e.out \
+            ./test/e2e/...
 
-    - name: Upload E2E coverage
-      uses: codecov/codecov-action@v4
-      if: always()
-      with:
-        file: ./coverage-e2e.out
-        flags: e2e
-        fail_ci_if_error: false
+      - name: Upload E2E coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage-e2e.out
+          flags: e2e
+          fail_ci_if_error: false
 
-    - name: Collect logs on failure
-      if: failure()
-      run: |
-        kubectl get pods -A || true
-        kubectl logs -n raft-operator-system \
-          -l control-plane=controller-manager --tail=100 || true
-        kubectl describe pods -l app=raft -A || true
-        kubectl get events --sort-by='.lastTimestamp' -A || true
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          kubectl get pods -A || true
+          kubectl logs -n raft-operator-system \
+            -l control-plane=controller-manager --tail=100 || true
+          kubectl describe pods -l app=raft -A || true
+          kubectl get events --sort-by='.lastTimestamp' -A || true
 
-    - name: Upload logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: e2e-logs
-        path: |
-          test_output.log
-          test_debug.log
-        retention-days: 7
-        if-no-files-found: ignore
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: |
+            test_output.log
+            test_debug.log
+          retention-days: 7
+          if-no-files-found: ignore
 
   # Coverage report summary
   coverage:
@@ -331,9 +332,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     timeout-minutes: 5
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Coverage summary
-      run: |
-        echo "Coverage reports are uploaded separately by each job"
-        echo "View combined coverage at: https://codecov.io/gh/${{ github.repository }}"
+      - name: Coverage summary
+        run: |
+          echo "Coverage reports are uploaded separately by each job"
+          echo "View combined coverage at: https://codecov.io/gh/${{ github.repository }}"
