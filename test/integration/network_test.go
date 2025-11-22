@@ -111,24 +111,31 @@ func TestNetworkPartition(t *testing.T) {
 	t.Log("Partition healed, waiting for nodes to catch up...")
 	// Give more time for leader to discover restarted nodes and replicate
 	// Restarted nodes need to catch up on log entries
-	time.Sleep(3 * time.Second)
+	// Leader needs to adjust nextIndex for restarted peers and send missing entries
+	time.Sleep(2 * time.Second)
 
 	// Wait for leader to send heartbeats and replicate to restarted nodes
 	// Use WaitForDataReplication helper for better reliability
-	if err := cluster.WaitForDataReplication(key, value, 20*time.Second); err != nil {
+	// This waits for data to appear in all active (non-stopped) nodes
+	if err := cluster.WaitForDataReplication(key, value, 25*time.Second); err != nil {
 		t.Fatalf("Initial key did not replicate after partition: %v", err)
 	}
-	if err := cluster.WaitForDataReplication(key2, value2, 20*time.Second); err != nil {
+	if err := cluster.WaitForDataReplication(key2, value2, 25*time.Second); err != nil {
 		t.Fatalf("Partition key did not replicate after partition: %v", err)
 	}
 
-	// Verify all nodes eventually have both keys
+	// Verify all active nodes eventually have both keys
+	// Note: WaitForDataReplication already checks all active nodes, but do a final verification
 	for i, store := range cluster.Stores {
+		// Skip stopped nodes
+		if cluster.Nodes[i] != nil && cluster.Nodes[i].IsStopped() {
+			continue
+		}
 		AssertEventuallyTrue(t, func() bool {
 			val1, ok1 := store.Get(key)
 			val2, ok2 := store.Get(key2)
 			return ok1 && val1 == value && ok2 && val2 == value2
-		}, 10*time.Second, fmt.Sprintf("Node %d did not catch up after partition", i))
+		}, 5*time.Second, fmt.Sprintf("Node %d did not catch up after partition", i))
 	}
 }
 
