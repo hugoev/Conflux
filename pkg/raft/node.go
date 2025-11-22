@@ -184,7 +184,10 @@ func (n *Node) runCandidate() {
 	votesReceived := 1
 
 	// Channel to collect vote results
+	// Buffer size = number of peers (we'll get one response per peer)
 	voteCh := make(chan bool, len(n.peers))
+	responsesExpected := len(n.peers) // Number of peers we'll send votes to
+	responsesReceived := 0
 
 	// Send RequestVote to all peers
 	for _, peer := range n.peers {
@@ -265,6 +268,7 @@ func (n *Node) runCandidate() {
 			n.mu.Unlock()
 			return
 		case vote := <-voteCh:
+			responsesReceived++
 			n.mu.Lock()
 			if n.state != StateCandidate || n.currentTerm != term {
 				n.mu.Unlock()
@@ -277,7 +281,11 @@ func (n *Node) runCandidate() {
 					zap.Int("votes", votesReceived),
 					zap.Int("needed", votesNeeded),
 					zap.Int("total_nodes", totalNodes),
-					zap.Int("peers_count", len(n.peers)))
+					zap.Int("peers_count", len(n.peers)),
+					zap.Int("responses", responsesReceived),
+					zap.Int("expected", responsesExpected))
+
+				// Check if we have enough votes to win
 				if votesReceived >= votesNeeded {
 					n.logger.Info("Won election", zap.Int("term", term), zap.Int("votes", votesReceived))
 					n.state = StateLeader
@@ -298,6 +306,16 @@ func (n *Node) runCandidate() {
 				}
 			}
 			n.mu.Unlock()
+
+			// If we've received all responses and don't have enough votes, we lost
+			// Continue waiting for timeout to retry election
+			if responsesReceived >= responsesExpected && votesReceived < votesNeeded {
+				n.logger.Info("Election lost: not enough votes",
+					zap.Int("votes", votesReceived),
+					zap.Int("needed", votesNeeded),
+					zap.Int("responses", responsesReceived))
+				// Don't return - wait for timeout to retry
+			}
 		case <-timer.C:
 			// Election timeout, retry
 			return
