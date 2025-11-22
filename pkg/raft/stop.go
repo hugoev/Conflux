@@ -22,18 +22,20 @@ func (n *Node) Stop() error {
 	default:
 		close(n.stopCh)
 	}
-	// Set state to stopped to prevent any new operations
-	n.state = StateFollower // Prevent becoming leader/candidate
+	// Set state to Follower and clear votedFor to prevent any election participation
+	n.state = StateFollower
+	n.votedFor = "" // Clear vote to prevent granting votes
 	n.mu.Unlock()
 
-	// Shutdown HTTP server (stops accepting new connections)
-	// Existing connections will be closed gracefully
+	// Shutdown HTTP server IMMEDIATELY (stops accepting new connections)
+	// This must happen right after closing stopCh to minimize race window
 	if n.server != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		// Use a very short timeout to fail fast
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 		if err := n.server.Shutdown(ctx); err != nil {
-			n.logger.Error("Failed to shutdown server", zap.Error(err))
-			// Force close if graceful shutdown fails
+			n.logger.Error("Failed to shutdown server gracefully", zap.Error(err))
+			// Force close immediately if graceful shutdown fails
 			if closeErr := n.server.Close(); closeErr != nil {
 				n.logger.Error("Failed to force close server", zap.Error(closeErr))
 			}

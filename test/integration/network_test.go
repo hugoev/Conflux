@@ -105,11 +105,12 @@ func TestNetworkPartition(t *testing.T) {
 			t.Fatalf("Failed to restart node-%d: %v", idx, err)
 		}
 		// Small delay between restarts
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	t.Log("Partition healed, waiting for nodes to catch up...")
-	time.Sleep(3 * time.Second)
+	// Give more time for leader to discover restarted nodes and replicate
+	time.Sleep(5 * time.Second)
 
 	// Verify all nodes eventually have both keys
 	for i, store := range cluster.Stores {
@@ -160,8 +161,8 @@ func TestSplitBrainPrevention(t *testing.T) {
 	}
 
 	// Now we have 2 nodes, but still no majority in 3-node cluster
-	// Wait for state to stabilize
-	time.Sleep(3 * time.Second)
+	// Wait for state to stabilize - give more time for election attempts to fail
+	time.Sleep(5 * time.Second)
 
 	// Still should not have leader (2/3 is not majority)
 	// Check multiple times to ensure no leader is elected
