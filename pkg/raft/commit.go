@@ -30,6 +30,11 @@ func (n *Node) advanceCommitIndex() {
 	// Sort in descending order
 	sort.Sort(sort.Reverse(sort.IntSlice(matches)))
 
+	// Safety check
+	if len(matches) == 0 {
+		return // No nodes to check (shouldn't happen, but be safe)
+	}
+
 	// Find the highest index where at least majority of nodes have replicated it
 	// Majority = (len(matches) + 1) / 2
 	majorityCount := (len(matches) + 1) / 2

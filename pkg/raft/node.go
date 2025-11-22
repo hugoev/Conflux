@@ -172,7 +172,10 @@ func (n *Node) runCandidate() {
 
 	// Vote for self
 	votesReceived := 1
-	votesNeeded := len(n.peers)/2 + 1
+	// Calculate votes needed based on total cluster size (peers + self)
+	// For a cluster of N nodes, we need (N/2 + 1) votes
+	totalNodes := len(n.peers) + 1 // peers doesn't include self
+	votesNeeded := totalNodes/2 + 1
 
 	// Channel to collect vote results
 	voteCh := make(chan bool, len(n.peers))
@@ -266,8 +269,11 @@ func (n *Node) runCandidate() {
 					// Reinitialize leader state
 					n.nextIndex = make(map[string]int)
 					n.matchIndex = make(map[string]int)
+					lastLogIdx := n.getLastLogIndexLocked()
+					// Initialize matchIndex for all peers (including self)
+					n.matchIndex[n.nodeID] = lastLogIdx // Leader always has all its entries
 					for _, p := range n.peers {
-						n.nextIndex[p] = n.getLastLogIndexLocked() + 1
+						n.nextIndex[p] = lastLogIdx + 1
 						n.matchIndex[p] = 0
 					}
 					n.mu.Unlock()
