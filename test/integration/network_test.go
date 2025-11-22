@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/hugovillarreal/conflux/pkg/kv"
 )
 
 // TestNetworkPartition tests behavior during network partitions
@@ -31,7 +33,12 @@ func TestNetworkPartition(t *testing.T) {
 	if err := leaderStore.Put(key, value); err != nil {
 		t.Fatalf("Failed to put key: %v", err)
 	}
-	if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+	cmd := &kv.Command{
+		Type:  kv.CommandPut,
+		Key:   key,
+		Value: value,
+	}
+	if err := leader.Propose(cmd); err != nil {
 		t.Fatalf("Failed to propose: %v", err)
 	}
 
@@ -68,7 +75,12 @@ func TestNetworkPartition(t *testing.T) {
 	if err := majorityStore.Put(key2, value2); err != nil {
 		t.Fatalf("Failed to put key in majority: %v", err)
 	}
-	if err := majorityLeader.Propose([]byte(fmt.Sprintf("PUT %s %s", key2, value2))); err != nil {
+	cmd2 := &kv.Command{
+		Type:  kv.CommandPut,
+		Key:   key2,
+		Value: value2,
+	}
+	if err := majorityLeader.Propose(cmd2); err != nil {
 		t.Fatalf("Failed to propose in majority: %v", err)
 	}
 
@@ -198,7 +210,12 @@ func TestConcurrentOperations(t *testing.T) {
 					continue
 				}
 
-				if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+				cmd := &kv.Command{
+		Type:  kv.CommandPut,
+		Key:   key,
+		Value: value,
+	}
+	if err := leader.Propose(cmd); err != nil {
 					errors <- fmt.Errorf("client %d propose %d failed: %w", cid, i, err)
 				}
 			}
@@ -277,7 +294,12 @@ func TestPerformanceThroughput(t *testing.T) {
 			t.Fatalf("Write %d failed: %v", i, err)
 		}
 
-		if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+		cmd := &kv.Command{
+		Type:  kv.CommandPut,
+		Key:   key,
+		Value: value,
+	}
+	if err := leader.Propose(cmd); err != nil {
 			t.Fatalf("Propose %d failed: %v", i, err)
 		}
 	}

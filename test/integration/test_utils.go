@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/hugovillarreal/conflux/pkg/kv"
 )
 
 // TestConfig holds configuration for integration tests
@@ -99,7 +101,12 @@ func WriteData(t *testing.T, cluster *TestCluster, key, value string) error {
 		return fmt.Errorf("failed to put key: %w", err)
 	}
 
-	if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+	cmd := &kv.Command{
+		Type:  kv.CommandPut,
+		Key:   key,
+		Value: value,
+	}
+	if err := leader.Propose(cmd); err != nil {
 		return fmt.Errorf("failed to propose: %w", err)
 	}
 

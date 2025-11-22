@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/hugovillarreal/conflux/pkg/kv"
 )
 
 func TestPersistence_Restart(t *testing.T) {
@@ -32,7 +34,12 @@ func TestPersistence_Restart(t *testing.T) {
 		if err := leaderStore.Put(key, value); err != nil {
 			t.Fatalf("Failed to put key %s: %v", key, err)
 		}
-		if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+		cmd := &kv.Command{
+			Type:  kv.CommandPut,
+			Key:   key,
+			Value: value,
+		}
+		if err := leader.Propose(cmd); err != nil {
 			t.Fatalf("Failed to propose entry %d: %v", i, err)
 		}
 	}
@@ -104,7 +111,12 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 		if err := leaderStore.Put(key, value); err != nil {
 			t.Fatalf("Failed to put key %s: %v", key, err)
 		}
-		if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+		cmd := &kv.Command{
+			Type:  kv.CommandPut,
+			Key:   key,
+			Value: value,
+		}
+		if err := leader.Propose(cmd); err != nil {
 			t.Fatalf("Failed to propose entry %d: %v", i, err)
 		}
 	}
@@ -129,7 +141,12 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 		if err := leaderStore.Put(key, value); err != nil {
 			t.Fatalf("Failed to put key %s: %v", key, err)
 		}
-		if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+		cmd := &kv.Command{
+			Type:  kv.CommandPut,
+			Key:   key,
+			Value: value,
+		}
+		if err := leader.Propose(cmd); err != nil {
 			t.Fatalf("Failed to propose entry %d: %v", i, err)
 		}
 	}
@@ -202,7 +219,12 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 	if err := newLeaderStore.Put(key2, value2); err != nil {
 		t.Fatalf("Failed to put key %s: %v", key2, err)
 	}
-	if err := newLeader.Propose([]byte(fmt.Sprintf("PUT %s %s", key2, value2))); err != nil {
+	cmd2 := &kv.Command{
+		Type:  kv.CommandPut,
+		Key:   key2,
+		Value: value2,
+	}
+	if err := newLeader.Propose(cmd2); err != nil {
 		t.Fatalf("Failed to propose entry: %v", err)
 	}
 

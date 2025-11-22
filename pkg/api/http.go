@@ -55,9 +55,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	s.logger.Info("Handling health check")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"status": "healthy",
-	})
+	}); err != nil {
+		s.logger.Error("Failed to encode health response", zap.Error(err))
+	}
 	s.logger.Info("Health check completed")
 }
 
@@ -65,9 +67,11 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	// Prometheus metrics are exposed via the default registry
 	// This endpoint is for custom metrics if needed
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"store_size": s.store.Size(),
-	})
+	}); err != nil {
+		s.logger.Error("Failed to encode metrics response", zap.Error(err))
+	}
 }
 
 func (s *Server) handleGet(w http.ResponseWriter, r *http.Request) {
@@ -87,10 +91,12 @@ func (s *Server) handleGet(w http.ResponseWriter, r *http.Request) {
 	metrics.KVRequestDuration.WithLabelValues("GET").Observe(time.Since(start).Seconds())
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"key":   key,
 		"value": value,
-	})
+	}); err != nil {
+		s.logger.Error("Failed to encode GET response", zap.Error(err))
+	}
 }
 
 func (s *Server) handlePut(w http.ResponseWriter, r *http.Request) {

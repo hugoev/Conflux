@@ -12,13 +12,16 @@ func (n *Node) Stop() error {
 	n.logger.Info("Stopping Raft node")
 
 	// Signal stop to all goroutines
+	n.mu.Lock()
 	select {
 	case <-n.stopCh:
 		// Already stopped
+		n.mu.Unlock()
 		return nil
 	default:
 		close(n.stopCh)
 	}
+	n.mu.Unlock()
 
 	// Shutdown HTTP server
 	if n.server != nil {
@@ -26,15 +29,22 @@ func (n *Node) Stop() error {
 		defer cancel()
 		if err := n.server.Shutdown(ctx); err != nil {
 			n.logger.Error("Failed to shutdown server", zap.Error(err))
-			return err
+			// Continue with shutdown even if server shutdown fails
 		}
 	}
 
-	// Give goroutines time to exit
-	time.Sleep(100 * time.Millisecond)
+	// Give goroutines time to exit (especially apply loop)
+	// Use a longer timeout to ensure apply loop finishes
+	time.Sleep(500 * time.Millisecond)
 
-	// Close apply channel
-	close(n.applyCh)
+	// Close apply channel only after goroutines have exited
+	// Use a mutex to ensure no one is sending
+	n.mu.Lock()
+	if n.applyCh != nil {
+		close(n.applyCh)
+		n.applyCh = nil // Prevent double close
+	}
+	n.mu.Unlock()
 
 	n.logger.Info("Raft node stopped")
 	return nil

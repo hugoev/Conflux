@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -13,6 +14,26 @@ import (
 	"github.com/hugovillarreal/conflux/pkg/raft"
 	"go.uber.org/zap"
 )
+
+// parseByteCommand parses a byte command like "PUT key value" into a Command
+func parseByteCommand(cmdBytes []byte) *kv.Command {
+	parts := strings.Fields(string(cmdBytes))
+	if len(parts) < 2 {
+		return nil
+	}
+
+	cmdType := strings.ToUpper(parts[0])
+	cmd := &kv.Command{
+		Type: kv.CommandType(cmdType),
+		Key:  parts[1],
+	}
+
+	if len(parts) > 2 && cmdType == "PUT" {
+		cmd.Value = strings.Join(parts[2:], " ")
+	}
+
+	return cmd
+}
 
 // TestCluster represents a test Raft cluster
 type TestCluster struct {
@@ -98,6 +119,12 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 							cmd.Value = value
 						}
 						s.Apply(cmd)
+					} else if cmdBytes, ok := msg.Command.([]byte); ok {
+						// Parse byte command like "PUT key value"
+						cmd := parseByteCommand(cmdBytes)
+						if cmd != nil {
+							s.Apply(cmd)
+						}
 					}
 				}
 			}
@@ -291,11 +318,39 @@ func (c *TestCluster) WaitForCommitIndex(minIndex int, timeout time.Duration) er
 		}
 
 		if allReached {
+			// Give additional time for apply loop to process
+			time.Sleep(200 * time.Millisecond)
 			return nil
 		}
 	}
 
 	return fmt.Errorf("nodes did not reach commit index %d within %v", minIndex, timeout)
+}
+
+// WaitForDataReplication waits for a key to appear in all stores
+func (c *TestCluster) WaitForDataReplication(key, expectedValue string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for time.Now().Before(deadline) {
+		<-ticker.C
+
+		allHaveData := true
+		for _, store := range c.Stores {
+			value, exists := store.Get(key)
+			if !exists || value != expectedValue {
+				allHaveData = false
+				break
+			}
+		}
+
+		if allHaveData {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("data for key %s did not replicate to all nodes within %v", key, timeout)
 }
 
 // allocatePorts allocates n available ports for testing

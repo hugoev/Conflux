@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/hugovillarreal/conflux/pkg/kv"
 )
 
 func TestLogReplication(t *testing.T) {
@@ -35,23 +37,29 @@ func TestLogReplication(t *testing.T) {
 			t.Fatalf("Failed to put key %s: %v", key, err)
 		}
 
-		// Propose to Raft
-		if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+		// Propose to Raft as Command object
+		cmd := &kv.Command{
+			Type:  kv.CommandPut,
+			Key:   key,
+			Value: value,
+		}
+		if err := leader.Propose(cmd); err != nil {
 			t.Fatalf("Failed to propose entry %d: %v", i, err)
 		}
 	}
 
-	// Wait for replication
+	// Wait for replication and commit
 	expectedCommitIndex := numEntries
 	if err := cluster.WaitForCommitIndex(expectedCommitIndex, 10*time.Second); err != nil {
 		t.Fatalf("Replication failed: %v", err)
 	}
 
-	// Verify all nodes have the same commit index
-	for i, node := range cluster.Nodes {
-		commitIndex := node.GetCommitIndex()
-		if commitIndex < expectedCommitIndex {
-			t.Errorf("Node %d commit index %d < expected %d", i, commitIndex, expectedCommitIndex)
+	// Wait for data to be applied to all stores
+	for i := 0; i < numEntries; i++ {
+		key := fmt.Sprintf("key-%d", i)
+		expectedValue := fmt.Sprintf("value-%d", i)
+		if err := cluster.WaitForDataReplication(key, expectedValue, 5*time.Second); err != nil {
+			t.Errorf("Data replication failed for key %s: %v", key, err)
 		}
 	}
 
@@ -96,7 +104,14 @@ func TestReplicationAfterFailover(t *testing.T) {
 		key := fmt.Sprintf("before-failover-%d", i)
 		value := fmt.Sprintf("value-%d", i)
 		leaderStore.Put(key, value)
-		leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value)))
+		cmd := &kv.Command{
+			Type:  kv.CommandPut,
+			Key:   key,
+			Value: value,
+		}
+		if err := leader.Propose(cmd); err != nil {
+			t.Fatalf("Failed to propose: %v", err)
+		}
 	}
 
 	// Wait for replication
@@ -123,7 +138,14 @@ func TestReplicationAfterFailover(t *testing.T) {
 		key := fmt.Sprintf("after-failover-%d", i)
 		value := fmt.Sprintf("value-%d", i)
 		newLeaderStore.Put(key, value)
-		newLeader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value)))
+		cmd := &kv.Command{
+			Type:  kv.CommandPut,
+			Key:   key,
+			Value: value,
+		}
+		if err := newLeader.Propose(cmd); err != nil {
+			t.Fatalf("Failed to propose: %v", err)
+		}
 	}
 
 	// Wait for replication
@@ -176,8 +198,12 @@ func TestCommitIndexAdvancement(t *testing.T) {
 	// Propose entries
 	numEntries := 5
 	for i := 0; i < numEntries; i++ {
-		entry := fmt.Sprintf("entry-%d", i)
-		if err := leader.Propose([]byte(entry)); err != nil {
+		cmd := &kv.Command{
+			Type:  kv.CommandPut,
+			Key:   fmt.Sprintf("entry-%d", i),
+			Value: fmt.Sprintf("value-%d", i),
+		}
+		if err := leader.Propose(cmd); err != nil {
 			t.Fatalf("Failed to propose entry: %v", err)
 		}
 	}
@@ -219,7 +245,12 @@ func TestReadAfterWrite(t *testing.T) {
 	key := "test-key"
 	value := "test-value"
 	leaderStore.Put(key, value)
-	if err := leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value))); err != nil {
+	cmd := &kv.Command{
+		Type:  kv.CommandPut,
+		Key:   key,
+		Value: value,
+	}
+	if err := leader.Propose(cmd); err != nil {
 		t.Fatalf("Failed to propose: %v", err)
 	}
 
@@ -266,7 +297,14 @@ func TestConcurrentWrites(t *testing.T) {
 			key := fmt.Sprintf("concurrent-key-%d", idx)
 			value := fmt.Sprintf("value-%d", idx)
 			leaderStore.Put(key, value)
-			leader.Propose([]byte(fmt.Sprintf("PUT %s %s", key, value)))
+			cmd := &kv.Command{
+				Type:  kv.CommandPut,
+				Key:   key,
+				Value: value,
+			}
+			if err := leader.Propose(cmd); err != nil {
+				t.Errorf("Failed to propose: %v", err)
+			}
 			done <- true
 		}(i)
 	}

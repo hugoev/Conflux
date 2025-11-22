@@ -41,6 +41,15 @@ func (n *Node) startApplyLoop() {
 						n.logger.Debug("Applied entry", zap.Int("index", entry.Index), zap.Int("term", entry.Term))
 					case <-n.stopCh:
 						return
+					default:
+						// Channel might be closed or full, check stopCh
+						select {
+						case <-n.stopCh:
+							return
+						default:
+							// Channel closed, exit
+							return
+						}
 					}
 				}
 			} else {
