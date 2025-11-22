@@ -38,7 +38,10 @@ func (n *Node) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply)
 	select {
 	case <-n.stopCh:
 		// Node is stopped, reject append entries
+		// Need to get currentTerm with lock
+		n.mu.RLock()
 		reply.Term = n.currentTerm
+		n.mu.RUnlock()
 		reply.Success = false
 		return
 	default:
@@ -135,7 +138,10 @@ func (n *Node) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) error
 	select {
 	case <-n.stopCh:
 		// Node is stopped, don't grant votes
+		// Need to get currentTerm with lock
+		n.mu.RLock()
 		reply.Term = n.currentTerm
+		n.mu.RUnlock()
 		reply.VoteGranted = false
 		return nil
 	default:
