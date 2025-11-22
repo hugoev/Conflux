@@ -36,19 +36,28 @@ func (n *Node) startApplyLoop() {
 						Command:      entry.Command,
 						CommandIndex: entry.Index,
 					}
+					// Check if channel is closed before sending
+					n.applyChMu.RLock()
+					if n.applyChClosed || n.applyCh == nil {
+						n.applyChMu.RUnlock()
+						// Channel closed, exit
+						return
+					}
+					applyCh := n.applyCh
+					n.applyChMu.RUnlock()
+
 					select {
-					case n.applyCh <- msg:
+					case applyCh <- msg:
 						n.logger.Debug("Applied entry", zap.Int("index", entry.Index), zap.Int("term", entry.Term))
 					case <-n.stopCh:
 						return
 					default:
-						// Channel might be closed or full, check stopCh
+						// Channel full, wait a bit and retry
 						select {
 						case <-n.stopCh:
 							return
-						default:
-							// Channel closed, exit
-							return
+						case <-time.After(10 * time.Millisecond):
+							// Retry sending
 						}
 					}
 				}

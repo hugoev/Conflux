@@ -333,8 +333,17 @@ func (n *Node) Propose(cmd interface{}) error {
 
 	n.logger.Info("Proposed command", zap.Int("index", entry.Index), zap.Int("term", entry.Term))
 
-	// In a real implementation, we would signal the leader loop to send AppendEntries immediately
-	// For MVP v1, the heartbeat ticker will pick it up or we can trigger it
+	// Trigger immediate replication (don't wait for next heartbeat)
+	// This improves latency and test reliability
+	// Note: sendHeartbeats acquires its own locks, so we release our lock first
+	term := n.currentTerm
+	n.mu.Unlock()
+
+	// Send heartbeats to replicate the new entry immediately
+	n.sendHeartbeats()
+
+	// Re-acquire lock (though we're about to return, this maintains lock discipline)
+	n.mu.Lock()
 
 	return nil
 }
