@@ -164,11 +164,12 @@ func (c *TestCluster) Start() error {
 		node.Start()
 
 		// Recreate apply goroutine (channel was reset, need new goroutine)
+		// This goroutine applies committed log entries to the store
 		store := c.Stores[i]
 		go func(n *raft.Node, s *kv.Store) {
 			applyCh := n.ApplyCh()
 			if applyCh == nil {
-				return // Channel not ready
+				return // Channel not ready or closed
 			}
 			for msg := range applyCh {
 				if msg.CommandValid {
@@ -341,6 +342,41 @@ func (c *TestCluster) RestartNode(idx int) error {
 
 	// Restart the node's main loops
 	node.Start()
+
+	// Recreate apply goroutine for restarted node
+	store := c.Stores[idx]
+	go func(n *raft.Node, s *kv.Store) {
+		applyCh := n.ApplyCh()
+		if applyCh == nil {
+			return // Channel not ready or closed
+		}
+		for msg := range applyCh {
+			if msg.CommandValid {
+				if cmd, ok := msg.Command.(*kv.Command); ok {
+					s.Apply(cmd)
+				} else if cmdMap, ok := msg.Command.(map[string]interface{}); ok {
+					// Handle map conversion
+					cmd := &kv.Command{}
+					if typeStr, ok := cmdMap["type"].(string); ok {
+						cmd.Type = kv.CommandType(typeStr)
+					}
+					if key, ok := cmdMap["key"].(string); ok {
+						cmd.Key = key
+					}
+					if value, ok := cmdMap["value"].(string); ok {
+						cmd.Value = value
+					}
+					s.Apply(cmd)
+				} else if cmdBytes, ok := msg.Command.([]byte); ok {
+					// Parse byte command like "PUT key value"
+					cmd := parseByteCommand(cmdBytes)
+					if cmd != nil {
+						s.Apply(cmd)
+					}
+				}
+			}
+		}
+	}(node, store)
 
 	// Create a new listener for the restart
 	listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))

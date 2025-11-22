@@ -140,13 +140,21 @@ func TestLeaderFailover(t *testing.T) {
 			t.Fatalf("Failed to restart node-%d: %v", leaderIdx, err)
 		}
 
-		// Small delay for node to rejoin
-		time.Sleep(200 * time.Millisecond)
+		// Give more time for node to rejoin and stabilize
+		// Restarted node needs to reconnect, receive heartbeats, and sync state
+		time.Sleep(2 * time.Second)
 
 		// Verify exactly one leader
 		AssertLeaderElected(t, cluster)
 
-		leaderIdx = newLeaderIdx
+		// Update leaderIdx for next iteration
+		// Note: After restarting, the old leader might become leader again if it has more up-to-date log
+		// So we need to get the current leader, not assume it's newLeaderIdx
+		currentLeader, err := cluster.WaitForLeader(5 * time.Second)
+		if err != nil {
+			t.Fatalf("Failed to get leader after restart: %v", err)
+		}
+		leaderIdx = currentLeader
 	}
 }
 
