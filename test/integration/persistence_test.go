@@ -168,7 +168,7 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 	if err := cluster.WaitForCommitIndex(numEntries+20, 20*time.Second); err != nil {
 		t.Fatalf("Replication to active follower failed: %v", err)
 	}
-	
+
 	// Wait for data to be applied
 	time.Sleep(2 * time.Second)
 
@@ -262,7 +262,7 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 	if err := cluster.WaitForCommitIndex(2, 15*time.Second); err != nil {
 		t.Fatalf("Replication after crash failed: %v", err)
 	}
-	
+
 	// Wait for data to be applied
 	time.Sleep(2 * time.Second)
 
