@@ -103,7 +103,9 @@ func TestReplicationAfterFailover(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		key := fmt.Sprintf("before-failover-%d", i)
 		value := fmt.Sprintf("value-%d", i)
-		leaderStore.Put(key, value)
+		if err := leaderStore.Put(key, value); err != nil {
+			t.Fatalf("Failed to put key: %v", err)
+		}
 		cmd := &kv.Command{
 			Type:  kv.CommandPut,
 			Key:   key,
@@ -137,7 +139,9 @@ func TestReplicationAfterFailover(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		key := fmt.Sprintf("after-failover-%d", i)
 		value := fmt.Sprintf("value-%d", i)
-		newLeaderStore.Put(key, value)
+		if err := newLeaderStore.Put(key, value); err != nil {
+			t.Fatalf("Failed to put key: %v", err)
+		}
 		cmd := &kv.Command{
 			Type:  kv.CommandPut,
 			Key:   key,
@@ -244,7 +248,9 @@ func TestReadAfterWrite(t *testing.T) {
 	// Write data
 	key := "test-key"
 	value := "test-value"
-	leaderStore.Put(key, value)
+	if err := leaderStore.Put(key, value); err != nil {
+		t.Fatalf("Failed to put key: %v", err)
+	}
 	cmd := &kv.Command{
 		Type:  kv.CommandPut,
 		Key:   key,
@@ -296,7 +302,11 @@ func TestConcurrentWrites(t *testing.T) {
 		go func(idx int) {
 			key := fmt.Sprintf("concurrent-key-%d", idx)
 			value := fmt.Sprintf("value-%d", idx)
-			leaderStore.Put(key, value)
+			if err := leaderStore.Put(key, value); err != nil {
+				t.Errorf("Failed to put key: %v", err)
+				done <- true
+				return
+			}
 			cmd := &kv.Command{
 				Type:  kv.CommandPut,
 				Key:   key,

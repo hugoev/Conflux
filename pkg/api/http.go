@@ -147,9 +147,11 @@ func (s *Server) handlePut(w http.ResponseWriter, r *http.Request) {
 	metrics.KVRequestDuration.WithLabelValues("PUT").Observe(time.Since(start).Seconds())
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"status": "ok",
-	})
+	}); err != nil {
+		s.logger.Error("Failed to encode PUT response", zap.Error(err))
+	}
 }
 
 func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
@@ -178,7 +180,9 @@ func (s *Server) handleDelete(w http.ResponseWriter, r *http.Request) {
 	metrics.KVRequestDuration.WithLabelValues("DELETE").Observe(time.Since(start).Seconds())
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
+	if err := json.NewEncoder(w).Encode(map[string]string{
 		"status": "ok",
-	})
+	}); err != nil {
+		s.logger.Error("Failed to encode PUT response", zap.Error(err))
+	}
 }

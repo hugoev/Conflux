@@ -416,7 +416,10 @@ func (n *Node) sendHeartbeats() {
 }
 
 // ApplyCh returns the apply channel
+// This method is thread-safe and returns a read-only channel
 func (n *Node) ApplyCh() <-chan ApplyMsg {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	return n.applyCh
 }
 

@@ -108,12 +108,14 @@ func (n *Node) persistLogEntry(entry LogEntry) error {
 }
 
 // shouldSnapshot determines if we should create a snapshot
+//nolint:unused // Reserved for future use
 func (n *Node) shouldSnapshot() bool {
 	const snapshotThreshold = 10000 // Create snapshot every 10k entries
 	return len(n.log) > snapshotThreshold
 }
 
 // createSnapshot creates a snapshot of the current state
+//nolint:unused // Reserved for future use
 func (n *Node) createSnapshot(stateData []byte) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()

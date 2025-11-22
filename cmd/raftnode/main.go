@@ -24,7 +24,11 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to initialize logger: %v", err))
 	}
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			// Ignore sync errors on close
+		}
+	}()
 
 	// Load configuration
 	cfg, err := config.LoadConfig()

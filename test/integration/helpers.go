@@ -102,7 +102,14 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 
 		// Wire up ApplyCh to Store (simulate main.go)
 		go func(n *raft.Node, s *kv.Store) {
-			for msg := range n.ApplyCh() {
+			for {
+				applyCh := n.ApplyCh()
+				if applyCh == nil {
+					// Node not started or stopped, wait a bit and retry
+					time.Sleep(100 * time.Millisecond)
+					continue
+				}
+				for msg := range applyCh {
 				if msg.CommandValid {
 					if cmd, ok := msg.Command.(*kv.Command); ok {
 						s.Apply(cmd)
@@ -127,6 +134,8 @@ func NewTestCluster(t *testing.T, n int) *TestCluster {
 						}
 					}
 				}
+				// Channel closed, break inner loop and retry getting new channel
+				break
 			}
 		}(node, store)
 
@@ -148,6 +157,24 @@ func (c *TestCluster) Start() error {
 	defer c.mu.Unlock()
 
 	for i, node := range c.Nodes {
+		// Reset apply channel if node was stopped (channel was closed)
+		// Check if channel is closed by trying to read (non-blocking)
+		applyCh := node.ApplyCh()
+		select {
+		case _, ok := <-applyCh:
+			if !ok {
+				// Channel is closed, reset it
+				node.ResetApplyCh()
+			}
+		default:
+			// Channel is open, continue
+		}
+
+		// Reinitialize persistence if needed
+		if err := node.InitializePersistence(); err != nil {
+			return fmt.Errorf("failed to initialize persistence for node %d: %w", i, err)
+		}
+
 		node.Start()
 		// Use existing listener if available (from allocatePorts)
 		// Note: StartTransport takes ownership of the listener? No, http.Server.Serve does not close it on error usually, but does on Shutdown.
