@@ -194,52 +194,52 @@ jobs:
   #     github.event_name != 'pull_request' &&
   #     secrets.DOCKER_USERNAME != null &&
   #     secrets.DOCKER_PASSWORD != null
-    # steps:
-    #   - uses: actions/checkout@v4
-    #
-    #   - name: Set up Docker Buildx
-    #     uses: docker/setup-buildx-action@v3
-    #
-    #   - name: Log in to Docker Hub
-    #     uses: docker/login-action@v3
-    #     with:
-    #       username: ${{ secrets.DOCKER_USERNAME }}
-    #       password: ${{ secrets.DOCKER_PASSWORD }}
-    #
-    #   - name: Extract metadata
-    #     id: meta
-    #     uses: docker/metadata-action@v5
-    #     with:
-    #       images: |
-    #         ${{ secrets.DOCKER_USERNAME }}/conflux
-    #         ${{ secrets.DOCKER_USERNAME }}/conflux-operator
-    #       tags: |
-    #         type=ref,event=branch
-    #         type=sha,prefix={{branch}}-
-    #         type=semver,pattern={{version}}
-    #         type=semver,pattern={{major}}.{{minor}}
-    #
-    #   - name: Build raft node image
-    #     uses: docker/build-push-action@v5
-    #     with:
-    #       context: .
-    #       file: ./Dockerfile
-    #       push: true
-    #       tags: ${{ steps.meta.outputs.tags }}
-    #       cache-from: type=gha
-    #       cache-to: type=gha,mode=max
-    #       platforms: linux/amd64,linux/arm64
+  # steps:
+  #   - uses: actions/checkout@v4
+  #
+  #   - name: Set up Docker Buildx
+  #     uses: docker/setup-buildx-action@v3
+  #
+  #   - name: Log in to Docker Hub
+  #     uses: docker/login-action@v3
+  #     with:
+  #       username: ${{ secrets.DOCKER_USERNAME }}
+  #       password: ${{ secrets.DOCKER_PASSWORD }}
+  #
+  #   - name: Extract metadata
+  #     id: meta
+  #     uses: docker/metadata-action@v5
+  #     with:
+  #       images: |
+  #         ${{ secrets.DOCKER_USERNAME }}/conflux
+  #         ${{ secrets.DOCKER_USERNAME }}/conflux-operator
+  #       tags: |
+  #         type=ref,event=branch
+  #         type=sha,prefix={{branch}}-
+  #         type=semver,pattern={{version}}
+  #         type=semver,pattern={{major}}.{{minor}}
+  #
+  #   - name: Build raft node image
+  #     uses: docker/build-push-action@v5
+  #     with:
+  #       context: .
+  #       file: ./Dockerfile
+  #       push: true
+  #       tags: ${{ steps.meta.outputs.tags }}
+  #       cache-from: type=gha
+  #       cache-to: type=gha,mode=max
+  #       platforms: linux/amd64,linux/arm64
 
-      # - name: Build operator image
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     context: ./operator
-      #     file: ./operator/Dockerfile
-      #     push: true
-      #     tags: ${{ steps.meta.outputs.tags }}-operator
-      #     cache-from: type=gha
-      #     cache-to: type=gha,mode=max
-      #     platforms: linux/amd64,linux/arm64
+  # - name: Build operator image
+  #   uses: docker/build-push-action@v5
+  #   with:
+  #     context: ./operator
+  #     file: ./operator/Dockerfile
+  #     push: true
+  #     tags: ${{ steps.meta.outputs.tags }}-operator
+  #     cache-from: type=gha
+  #     cache-to: type=gha,mode=max
+  #     platforms: linux/amd64,linux/arm64
 
   # E2E tests - only on main branch or PRs with e2e label
   # Note: E2E tests build images locally, so they don't depend on Docker Hub secrets
