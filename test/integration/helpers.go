@@ -392,7 +392,7 @@ func (c *TestCluster) RestartNode(idx int) error {
 	return nil
 }
 
-// WaitForCommitIndex waits for all nodes to reach at least the given commit index
+// WaitForCommitIndex waits for all active (non-stopped) nodes to reach at least the given commit index
 func (c *TestCluster) WaitForCommitIndex(minIndex int, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	ticker := time.NewTicker(100 * time.Millisecond)
@@ -402,12 +402,19 @@ func (c *TestCluster) WaitForCommitIndex(minIndex int, timeout time.Duration) er
 		<-ticker.C
 
 		allReached := true
-		for _, node := range c.Nodes {
-			if node.GetCommitIndex() < minIndex {
+		c.mu.Lock()
+		for i, node := range c.Nodes {
+			// Skip stopped nodes - they don't participate in commit decisions
+			if node != nil && node.IsStopped() {
+				continue
+			}
+			if node == nil || node.GetCommitIndex() < minIndex {
 				allReached = false
+				c.mu.Unlock()
 				break
 			}
 		}
+		c.mu.Unlock()
 
 		if allReached {
 			// Give additional time for apply loop to process

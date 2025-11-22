@@ -2,6 +2,7 @@ package raft
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"go.uber.org/zap"
@@ -11,7 +12,11 @@ import (
 func (n *Node) Stop() error {
 	n.logger.Info("Stopping Raft node")
 
-	// Signal stop to all goroutines FIRST
+	// Set stopped flag FIRST (atomic, no lock needed)
+	// This ensures fast checks in RPC handlers without acquiring locks
+	atomic.StoreInt32(&n.stopped, 1)
+
+	// Signal stop to all goroutines
 	// This ensures RPC handlers will reject requests immediately
 	n.mu.Lock()
 	select {

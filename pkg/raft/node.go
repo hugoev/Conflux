@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hugovillarreal/conflux/pkg/snapshot"
@@ -53,6 +54,9 @@ type Node struct {
 	applyChMu     sync.RWMutex // Protects applyCh access
 	applyChClosed bool         // Tracks if channel is closed
 
+	// Stopped state - atomic flag for fast checks without lock
+	stopped int32 // 0 = running, 1 = stopped (use atomic operations)
+
 	// Persistence
 	wal         *wal.WAL
 	snapshotter *snapshot.Snapshotter
@@ -96,6 +100,7 @@ func NewNode(nodeID string, peers []string, dataDir string, logger *zap.Logger) 
 		electionResetEvent: make(chan struct{}, 1),
 		stopCh:             make(chan struct{}),
 		applyChClosed:      false,
+		stopped:            0, // 0 = running
 		dataDir:            dataDir,
 		logger:             logger,
 	}
@@ -104,6 +109,9 @@ func NewNode(nodeID string, peers []string, dataDir string, logger *zap.Logger) 
 // Start starts the Raft node
 func (n *Node) Start() {
 	n.logger.Info("Starting Raft node", zap.String("nodeID", n.nodeID))
+
+	// Reset stopped flag (in case node was restarted)
+	atomic.StoreInt32(&n.stopped, 0)
 
 	// Start apply loop
 	n.startApplyLoop()
@@ -295,9 +303,13 @@ func (n *Node) runCandidate() {
 					lastLogIdx := n.getLastLogIndexLocked()
 					// Initialize matchIndex for all peers (including self)
 					n.matchIndex[n.nodeID] = lastLogIdx // Leader always has all its entries
+					// Initialize nextIndex for all peers to lastLogIndex + 1
+					// This ensures we send all entries to followers on first heartbeat
 					for _, p := range n.peers {
-						n.nextIndex[p] = lastLogIdx + 1
-						n.matchIndex[p] = 0
+						if p != n.nodeID {
+							n.nextIndex[p] = lastLogIdx + 1
+							n.matchIndex[p] = 0 // Will be updated as replication progresses
+						}
 					}
 					n.mu.Unlock()
 					// Trigger immediate heartbeat
@@ -455,13 +467,16 @@ func (n *Node) sendHeartbeats() {
 					n.nextIndex[peer] = newMatchIndex + 1
 				}
 
-				// Try to advance commitIndex
+				// Try to advance commitIndex after successful replication
+				// This is called after each successful AppendEntries response
 				n.advanceCommitIndex()
 			} else {
 				// Log inconsistency, decrement nextIndex and retry
+				// This happens when follower's log doesn't match leader's expectation
 				if n.nextIndex[peer] > 1 {
 					n.nextIndex[peer]--
 				}
+				// Don't advance commit index on failure
 			}
 		}(peer)
 	}
@@ -510,15 +525,9 @@ func (n *Node) GetCommitIndex() int {
 }
 
 // IsStopped returns true if the node has been stopped
+// Uses atomic flag for fast checks without acquiring lock
 func (n *Node) IsStopped() bool {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	select {
-	case <-n.stopCh:
-		return true
-	default:
-		return false
-	}
+	return atomic.LoadInt32(&n.stopped) == 1
 }
 
 // IsApplyChClosed returns true if the apply channel has been closed

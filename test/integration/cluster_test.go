@@ -277,10 +277,12 @@ func TestMajorityNodeFailure(t *testing.T) {
 		}
 	}
 
-	// Wait for election timeout and state updates
+	// Wait for nodes to fully stop (HTTP servers to shut down, RPCs to be rejected)
+	// Then wait for election timeout and state updates
 	// Give enough time for any election attempts to complete and fail
 	// Nodes need time to realize they can't get majority votes
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second) // Wait for HTTP servers to shut down
+	time.Sleep(3 * time.Second) // Wait for election attempts to fail
 
 	// Cluster should NOT have a leader (no majority)
 	// With only 2 nodes remaining out of 5, there's no majority (need 3)

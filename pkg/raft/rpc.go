@@ -1,6 +1,10 @@
 package raft
 
-import "go.uber.org/zap"
+import (
+	"sync/atomic"
+
+	"go.uber.org/zap"
+)
 
 // AppendEntriesArgs is the RPC argument for AppendEntries
 type AppendEntriesArgs struct {
@@ -34,17 +38,28 @@ type RequestVoteReply struct {
 
 // AppendEntries handles AppendEntries RPC
 func (n *Node) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
-	// Check if node is stopped before processing append entries
+	// Check if node is stopped using atomic flag (fast path, no lock needed)
 	// This must be the FIRST check to prevent any processing of stopped nodes
-	select {
-	case <-n.stopCh:
+	if atomic.LoadInt32(&n.stopped) == 1 {
 		// Node is stopped, reject append entries immediately
 		// Need to get currentTerm with lock for proper response
 		n.mu.RLock()
 		reply.Term = n.currentTerm
 		n.mu.RUnlock()
 		reply.Success = false
-		n.logger.Debug("Rejected AppendEntries: node is stopped")
+		n.logger.Debug("Rejected AppendEntries: node is stopped (atomic check)")
+		return
+	}
+
+	// Double-check with stopCh (defensive check for race conditions)
+	select {
+	case <-n.stopCh:
+		// Node is stopped, reject append entries immediately
+		n.mu.RLock()
+		reply.Term = n.currentTerm
+		n.mu.RUnlock()
+		reply.Success = false
+		n.logger.Debug("Rejected AppendEntries: node is stopped (stopCh check)")
 		return
 	default:
 		// Node is not stopped, continue processing
@@ -137,17 +152,30 @@ func (n *Node) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply)
 
 // RequestVote handles RequestVote RPC
 func (n *Node) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) error {
-	// Check if node is stopped before processing vote request
+	// Check if node is stopped using atomic flag (fast path, no lock needed)
 	// This must be the FIRST check to prevent stopped nodes from granting votes
-	select {
-	case <-n.stopCh:
+	if atomic.LoadInt32(&n.stopped) == 1 {
 		// Node is stopped, don't grant votes
 		// Need to get currentTerm with lock for proper response
 		n.mu.RLock()
 		reply.Term = n.currentTerm
 		n.mu.RUnlock()
 		reply.VoteGranted = false
-		n.logger.Debug("Rejected RequestVote: node is stopped",
+		n.logger.Debug("Rejected RequestVote: node is stopped (atomic check)",
+			zap.String("candidate", args.CandidateID),
+			zap.Int("term", args.Term))
+		return nil
+	}
+
+	// Double-check with stopCh (defensive check for race conditions)
+	select {
+	case <-n.stopCh:
+		// Node is stopped, don't grant votes
+		n.mu.RLock()
+		reply.Term = n.currentTerm
+		n.mu.RUnlock()
+		reply.VoteGranted = false
+		n.logger.Debug("Rejected RequestVote: node is stopped (stopCh check)",
 			zap.String("candidate", args.CandidateID),
 			zap.Int("term", args.Term))
 		return nil
@@ -178,17 +206,14 @@ func (n *Node) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) error
 	}
 
 	// 2. If votedFor is null or candidateId, and candidate's log is at least as up-to-date as receiver's log, grant vote
-	// Double-check stopCh after acquiring lock (defensive check)
-	select {
-	case <-n.stopCh:
+	// Triple-check stopped state after acquiring lock (defensive check for race conditions)
+	if atomic.LoadInt32(&n.stopped) == 1 {
 		// Node was stopped while we were acquiring lock - reject vote
 		reply.VoteGranted = false
-		n.logger.Debug("Rejected RequestVote: node stopped during processing",
+		n.logger.Debug("Rejected RequestVote: node stopped during processing (atomic check)",
 			zap.String("candidate", args.CandidateID),
 			zap.Int("term", args.Term))
 		return nil
-	default:
-		// Continue processing
 	}
 
 	if (n.votedFor == "" || n.votedFor == args.CandidateID) && n.isLogUpToDate(args.LastLogIndex, args.LastLogTerm) {

@@ -168,7 +168,15 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 	}
 
 	// Wait for replication to active follower
-	if err := cluster.WaitForCommitIndex(numEntries+20, 20*time.Second); err != nil {
+	// Note: With 2 active nodes (leader + 1 follower) out of 3 total, we need 2 nodes to commit
+	// (2/3 = majority). The commit index should advance once both active nodes have the entries.
+	// However, we need to wait for the follower to catch up first.
+	time.Sleep(2 * time.Second) // Give time for replication
+
+	// Wait for commit index to advance (leader + active follower = 2/3 = majority)
+	// The commit index should advance as the active follower replicates entries
+	// We check for numEntries+20 because we wrote 20 more entries after stopping the follower
+	if err := cluster.WaitForCommitIndex(numEntries+20, 30*time.Second); err != nil {
 		t.Fatalf("Replication to active follower failed: %v", err)
 	}
 

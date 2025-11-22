@@ -36,11 +36,16 @@ func (n *Node) advanceCommitIndex() {
 	}
 
 	// Find the highest index where at least majority of nodes have replicated it
-	// Majority = (len(matches) + 1) / 2
-	majorityCount := (len(matches) + 1) / 2
+	// Majority = (totalNodes + 1) / 2 where totalNodes = len(peers) + 1 (including leader)
+	// Note: We use total configured cluster size, not just active nodes
+	totalNodes := len(n.peers) + 1 // Include leader
+	majorityCount := totalNodes/2 + 1
 	newCommitIndex := n.commitIndex
 
 	// Check each index from commitIndex+1 to the highest matchIndex
+	if len(matches) == 0 {
+		return // No matches, can't commit anything
+	}
 	maxIndex := matches[0] // Highest matchIndex
 	for idx := n.commitIndex + 1; idx <= maxIndex; idx++ {
 		// Count how many nodes have replicated this index or higher
@@ -53,10 +58,18 @@ func (n *Node) advanceCommitIndex() {
 
 		// If majority have replicated this index, and it's from current term, we can commit it
 		if count >= majorityCount {
-			if idx < len(n.log) && n.log[idx].Term == n.currentTerm {
-				newCommitIndex = idx
+			// Safety check: ensure we have a log entry at this index
+			if idx < len(n.log) {
+				// Only commit entries from current term (Raft safety requirement)
+				if n.log[idx].Term == n.currentTerm {
+					newCommitIndex = idx
+				} else {
+					// Can't commit entries from previous terms (Raft safety requirement)
+					// Stop here as we can't commit higher indices
+					break
+				}
 			} else {
-				// Can't commit entries from previous terms (Raft safety requirement)
+				// Index beyond log length, can't commit
 				break
 			}
 		} else {

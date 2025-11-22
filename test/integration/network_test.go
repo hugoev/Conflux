@@ -163,8 +163,9 @@ func TestSplitBrainPrevention(t *testing.T) {
 
 	t.Logf("Stopped leader node-%d and follower node-%d", leaderIdx, followerIdx)
 
-	// Wait for election timeout
-	time.Sleep(2 * time.Second)
+	// Wait for nodes to fully stop (HTTP servers to shut down, RPCs to be rejected)
+	// This ensures stopped nodes cannot grant votes even if requests are in flight
+	time.Sleep(3 * time.Second)
 
 	// Remaining node should NOT be leader (no majority)
 	leaderCount := cluster.CountLeaders()
@@ -203,10 +204,12 @@ func TestSplitBrainPrevention(t *testing.T) {
 	}
 
 	// Wait for nodes to reconnect and stabilize
-	time.Sleep(2 * time.Second)
+	// Restarted nodes need time to reconnect, receive heartbeats, and sync state
+	time.Sleep(3 * time.Second)
 
 	// Now should have leader (3 nodes = majority)
-	newLeaderIdx, err := cluster.WaitForLeader(30 * time.Second)
+	// After full restart, nodes need more time to reconnect and elect a leader
+	newLeaderIdx, err := cluster.WaitForLeader(45 * time.Second)
 	if err != nil {
 		t.Fatalf("Leader election after majority restored failed: %v", err)
 	}

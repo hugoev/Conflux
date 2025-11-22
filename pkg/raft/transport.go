@@ -43,6 +43,14 @@ func (n *Node) StartTransport(listener net.Listener) error {
 }
 
 func (n *Node) handleRequestVoteHTTP(w http.ResponseWriter, r *http.Request) {
+	// Check if node is stopped BEFORE processing (fast path check)
+	// This prevents stopped nodes from processing any vote requests, even if HTTP server is still running
+	if n.IsStopped() {
+		n.logger.Debug("Rejected RequestVote HTTP: node is stopped")
+		http.Error(w, "node is stopped", http.StatusServiceUnavailable)
+		return
+	}
+
 	var args RequestVoteArgs
 	if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -66,6 +74,14 @@ func (n *Node) handleRequestVoteHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (n *Node) handleAppendEntriesHTTP(w http.ResponseWriter, r *http.Request) {
+	// Check if node is stopped BEFORE processing (fast path check)
+	// This prevents stopped nodes from processing any append entries, even if HTTP server is still running
+	if n.IsStopped() {
+		n.logger.Debug("Rejected AppendEntries HTTP: node is stopped")
+		http.Error(w, "node is stopped", http.StatusServiceUnavailable)
+		return
+	}
+
 	var args AppendEntriesArgs
 	if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
