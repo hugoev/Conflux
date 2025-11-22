@@ -26,7 +26,8 @@ func main() {
 	}
 	defer func() {
 		if err := logger.Sync(); err != nil {
-			// Ignore sync errors on close
+			// Ignore sync errors on close (common on some systems)
+			_ = err
 		}
 	}()
 
