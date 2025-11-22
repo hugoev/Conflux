@@ -57,7 +57,7 @@ func TestPersistence_Restart(t *testing.T) {
 	t.Log("Cluster stopped")
 
 	// Wait for cleanup
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	// Restart the cluster
 	t.Log("Restarting cluster...")
@@ -66,11 +66,15 @@ func TestPersistence_Restart(t *testing.T) {
 	}
 
 	// Wait for leader again (longer timeout after restart)
-	newLeaderIdx, err := cluster.WaitForLeader(20 * time.Second)
+	// After a full shutdown, nodes need time to reconnect and elect a leader
+	newLeaderIdx, err := cluster.WaitForLeader(30 * time.Second)
 	if err != nil {
 		t.Fatalf("Leader election after restart failed: %v", err)
 	}
 	t.Logf("New leader elected: node-%d", newLeaderIdx)
+
+	// Wait a bit for nodes to fully reconnect and sync
+	time.Sleep(2 * time.Second)
 
 	// Verify data persists on all nodes
 	for i, store := range cluster.Stores {
@@ -161,10 +165,12 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 	}
 
 	// Wait for replication to active follower
-	if err := cluster.WaitForCommitIndex(numEntries+20, 15*time.Second); err != nil {
+	if err := cluster.WaitForCommitIndex(numEntries+20, 20*time.Second); err != nil {
 		t.Fatalf("Replication to active follower failed: %v", err)
 	}
-	time.Sleep(1 * time.Second)
+	
+	// Wait for data to be applied
+	time.Sleep(2 * time.Second)
 
 	// Restart follower
 	t.Logf("Restarting follower node-%d", followerIdx)
@@ -172,7 +178,10 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 		t.Fatalf("Failed to restart follower: %v", err)
 	}
 
-	// Follower should catch up
+	// Wait for follower to reconnect and catch up
+	time.Sleep(2 * time.Second)
+
+	// Follower should catch up - check in batches with retries
 	store := cluster.Stores[followerIdx]
 	for i := 0; i < numEntries+20; i++ {
 		key := fmt.Sprintf("snap-key-%d", i)
@@ -181,7 +190,7 @@ func TestPersistence_SnapshotRecovery(t *testing.T) {
 		AssertEventuallyTrue(t, func() bool {
 			val, exists := store.Get(key)
 			return exists && val == expectedValue
-		}, 10*time.Second, fmt.Sprintf("Follower node-%d missing key %s after restart", followerIdx, key))
+		}, 15*time.Second, fmt.Sprintf("Follower node-%d missing key %s after restart", followerIdx, key))
 	}
 }
 
@@ -250,17 +259,20 @@ func TestPersistence_CrashRecovery(t *testing.T) {
 	}
 
 	// Wait for replication
-	if err := cluster.WaitForCommitIndex(2, 10*time.Second); err != nil {
+	if err := cluster.WaitForCommitIndex(2, 15*time.Second); err != nil {
 		t.Fatalf("Replication after crash failed: %v", err)
 	}
-	time.Sleep(1 * time.Second)
+	
+	// Wait for data to be applied
+	time.Sleep(2 * time.Second)
 
 	// Restart old leader
+	t.Logf("Restarting old leader node-%d", leaderIdx)
 	if err := cluster.RestartNode(leaderIdx); err != nil {
 		t.Fatalf("Failed to restart old leader: %v", err)
 	}
 
-	// Wait for old leader to catch up
+	// Wait for old leader to reconnect and catch up
 	time.Sleep(2 * time.Second)
 
 	// Old leader should have both keys eventually

@@ -228,13 +228,15 @@ func (c *TestCluster) Shutdown() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	for _, node := range c.Nodes {
+	for i, node := range c.Nodes {
 		if node != nil {
 			if err := node.Stop(); err != nil {
 				// Log error but continue shutdown
 				fmt.Printf("Failed to stop node: %v\n", err)
 			}
 		}
+		// Clear listeners after shutdown so they can be recreated on restart
+		c.Listeners[i] = nil
 	}
 }
 

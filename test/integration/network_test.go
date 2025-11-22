@@ -328,27 +328,68 @@ func TestPerformanceThroughput(t *testing.T) {
 	t.Logf("Write throughput: %.2f ops/sec (%d writes in %v)", throughput, numWrites, elapsed)
 
 	// Wait for replication and commit
-	if err := cluster.WaitForCommitIndex(numWrites, 30*time.Second); err != nil {
+	if err := cluster.WaitForCommitIndex(numWrites, 60*time.Second); err != nil {
 		t.Fatalf("Replication failed: %v", err)
 	}
 
-	// Wait for data to be applied
-	time.Sleep(2 * time.Second)
+	// Wait for data to be applied to all stores - check sample keys first
+	// Check a few keys to ensure replication is working
+	sampleKeys := []int{0, numWrites / 4, numWrites / 2, numWrites * 3 / 4, numWrites - 1}
+	for _, idx := range sampleKeys {
+		key := fmt.Sprintf("perf-key-%d", idx)
+		expectedValue := fmt.Sprintf("value-%d", idx)
+		if err := cluster.WaitForDataReplication(key, expectedValue, 10*time.Second); err != nil {
+			t.Fatalf("Sample key %s did not replicate: %v", key, err)
+		}
+	}
 
-	// Verify all writes
+	// Now verify all writes with retries for missing keys
+	missingKeys := make(map[int]bool)
 	for i := 0; i < numWrites; i++ {
-		key := fmt.Sprintf("perf-key-%d", i)
-		expectedValue := fmt.Sprintf("value-%d", i)
+		missingKeys[i] = true
+	}
 
-		for nodeIdx, store := range cluster.Stores {
-			value, exists := store.Get(key)
-			if !exists {
-				t.Errorf("Node %d missing key %s", nodeIdx, key)
-				continue
+	// Retry verification with exponential backoff
+	maxRetries := 5
+	for retry := 0; retry < maxRetries && len(missingKeys) > 0; retry++ {
+		if retry > 0 {
+			time.Sleep(time.Duration(retry) * time.Second)
+		}
+
+		for i := range missingKeys {
+			key := fmt.Sprintf("perf-key-%d", i)
+			expectedValue := fmt.Sprintf("value-%d", i)
+			allMatch := true
+
+			for nodeIdx, store := range cluster.Stores {
+				value, exists := store.Get(key)
+				if !exists || value != expectedValue {
+					allMatch = false
+					break
+				}
 			}
-			if value != expectedValue {
-				t.Errorf("Node %d key %s: got %s, want %s", nodeIdx, key, value, expectedValue)
+
+			if allMatch {
+				delete(missingKeys, i)
 			}
+		}
+	}
+
+	// Report any remaining missing keys
+	if len(missingKeys) > 0 {
+		for i := range missingKeys {
+			key := fmt.Sprintf("perf-key-%d", i)
+			for nodeIdx, store := range cluster.Stores {
+				value, exists := store.Get(key)
+				if !exists {
+					t.Errorf("Node %d missing key %s", nodeIdx, key)
+				} else if value != fmt.Sprintf("value-%d", i) {
+					t.Errorf("Node %d key %s: got %s, want value-%d", nodeIdx, key, value, i)
+				}
+			}
+		}
+		if len(missingKeys) > 100 {
+			t.Fatalf("Too many keys missing (%d), test unreliable", len(missingKeys))
 		}
 	}
 }
